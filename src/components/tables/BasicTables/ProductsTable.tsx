@@ -1,4 +1,3 @@
-// src/components/tables/BasicTables/ProductsTable.tsx
 import { useState, useEffect } from "react";
 import { Product } from "../../../types/product";
 import {
@@ -59,7 +58,7 @@ export default function ProductsTable({
   });
   const [total, setTotal] = useState(0);
 
-  // Efecto para debounce de búsqueda (sin NodeJS.Timeout)
+  // Efecto para debounce de búsqueda
   useEffect(() => {
     const timeoutId = window.setTimeout(() => {
       setDebouncedSearchTerm(searchTerm);
@@ -260,8 +259,8 @@ export default function ProductsTable({
           </button>
 
           <span className="text-sm text-gray-600 self-center whitespace-nowrap">
-            {products.length} productos
-            {debouncedSearchTerm && ` filtrados para "${debouncedSearchTerm}"`}
+            Total: {total} productos
+            {debouncedSearchTerm && ` (mostrando ${products.length})`}
           </span>
         </div>
 

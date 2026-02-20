@@ -130,6 +130,7 @@ export async function generateProduct(request: {
   country?: string;
   generate_feed?: boolean;
   generate_story?: boolean;
+  link_afiliados?: string; // ← Nuevo campo opcional
 }): Promise<Product> {
   const response = await fetch(`${API_BASE_URL}/api/v1/generate`, {
     method: "POST",
@@ -140,6 +141,7 @@ export async function generateProduct(request: {
       country: request.country || "cl",
       generate_feed: request.generate_feed ?? true,
       generate_story: request.generate_story ?? true,
+      link_afiliados: request.link_afiliados, // ← Enviar al backend
     }),
   });
 
