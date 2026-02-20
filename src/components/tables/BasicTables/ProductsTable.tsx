@@ -47,8 +47,6 @@ export default function ProductsTable({
   const [showDeleteConfirm, setShowDeleteConfirm] = useState<string | null>(
     null,
   );
-  const [showCopyToast, setShowCopyToast] = useState(false);
-  const [copyMessage, setCopyMessage] = useState("");
 
   // Estados para búsqueda
   const [searchTerm, setSearchTerm] = useState("");
@@ -83,6 +81,7 @@ export default function ProductsTable({
       setTotal(response.total);
     } catch (err) {
       console.error("Error al cargar productos:", err);
+      toast.error("Error al cargar productos");
     } finally {
       setLoading(false);
     }
@@ -98,12 +97,12 @@ export default function ProductsTable({
     try {
       const product = await getProduct(productId);
       console.log("🔍 Producto recibido:", product);
-      console.log("🔍 _id presente?:", product._id);
+      console.log("🔍 id presente?:", product.id || product._id);
       console.log("🔍 Todas las keys:", Object.keys(product));
       setDetailProduct(product);
       setShowDetailModal(true);
     } catch (err) {
-      alert(
+      toast.error(
         `Error al cargar detalle: ${err instanceof Error ? err.message : "Error desconocido"}`,
       );
     } finally {
@@ -134,12 +133,12 @@ export default function ProductsTable({
     });
   };
 
-  // Generar link para Instagram
+  // Generar link para Instagram - AHORA USA 'id' en lugar de '_id'
   const getInstagramLink = (product: Product) => {
     const baseUrl = "https://links.descuenta.me/click";
 
-    // Priorizar _id de MongoDB si existe, sino usar product_id
-    const idToUse = product._id || product.product_id;
+    // Usar 'id' (nuevo) o '_id' (viejo) o product_id como fallback
+    const idToUse = product.id || product._id || product.product_id;
 
     if (!idToUse) {
       console.error("❌ No hay ID disponible");
@@ -150,7 +149,7 @@ export default function ProductsTable({
 
     // Log para debug
     console.log("🔗 Generando link:", {
-      usando: product._id ? "_id" : "product_id",
+      usando: product.id ? "id" : product._id ? "_id" : "product_id",
       id: idToUse,
       url: `${baseUrl}/${idToUse}?source=instagram&campaign=${storeId}`,
     });
@@ -171,8 +170,9 @@ export default function ProductsTable({
       if (detailProduct?.product_id === productId) {
         setDetailProduct(updated);
       }
+      toast.success(`Producto ${action}ado exitosamente`);
     } catch (err) {
-      alert(
+      toast.error(
         `Error: ${err instanceof Error ? err.message : "Error desconocido"}`,
       );
     }
@@ -187,8 +187,9 @@ export default function ProductsTable({
       if (detailProduct?.product_id === productId) {
         closeDetailModal();
       }
+      toast.success("Producto eliminado");
     } catch (err) {
-      alert(
+      toast.error(
         `Error: ${err instanceof Error ? err.message : "Error desconocido"}`,
       );
     }
@@ -247,13 +248,6 @@ export default function ProductsTable({
 
   return (
     <>
-      {/* Toast de copiado */}
-      {showCopyToast && (
-        <div className="fixed bottom-4 right-4 bg-green-600 text-white px-4 py-2 rounded-lg shadow-lg z-50 animate-fade-in-up">
-          {copyMessage}
-        </div>
-      )}
-
       <div className="space-y-4">
         {/* Filtros y buscador */}
         <div className="bg-white p-4 rounded-lg shadow-sm flex gap-4 flex-wrap items-center">
