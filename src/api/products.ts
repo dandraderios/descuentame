@@ -1,6 +1,5 @@
 import {
   Product,
-  ApiResponse,
   ProductListResponse,
   ProductListRequest,
   ProductUpdateRequest,
@@ -40,6 +39,7 @@ export async function getProducts(
       skip: request.skip || 0,
       status: request.status,
       store: request.store,
+      search: request.search,
       sort_by: request.sort_by || "created_at",
       sort_order: request.sort_order || "desc",
     }),

@@ -58,6 +58,7 @@ export interface ProductListResponse {
 export interface ProductListRequest {
   status?: string;
   store?: string;
+  search?: string;
   limit?: number;
   skip?: number;
   sort_by?: string;

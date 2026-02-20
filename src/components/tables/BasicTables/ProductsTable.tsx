@@ -1,18 +1,16 @@
-import React, { useState, useEffect } from "react";
+import { useState, useEffect } from "react";
 import { Product } from "../../../types/product";
-import { Modal } from "../../../components/ui/modal"; // Ajusta la ruta según donde esté
 import {
   getProducts,
-  updateProduct,
   deleteProduct,
   publishProduct,
-  getProduct, // ← Importar nueva función
+  getProduct,
 } from "../../../api/products";
+import { Modal } from "../../ui/modal";
 
 // Iconos
 import {
   Eye,
-  Edit,
   Trash2,
   CheckCircle,
   XCircle,
@@ -20,11 +18,7 @@ import {
   ExternalLink,
   Image,
   Calendar,
-  Tag,
-  ShoppingBag,
-  Download,
   RefreshCw,
-  X,
   Copy,
   Link,
   Store,
@@ -32,7 +26,7 @@ import {
   DollarSign,
   Percent,
   Award,
-  FileText,
+  Search,
 } from "lucide-react";
 
 interface ProductsTableProps {
@@ -46,15 +40,20 @@ export default function ProductsTable({
 }: ProductsTableProps) {
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
-  const [showModal, setShowModal] = useState(false);
-  const [showDetailModal, setShowDetailModal] = useState(false); // ← Nuevo estado
-  const [detailProduct, setDetailProduct] = useState<Product | null>(null); // ← Nuevo estado
-  const [loadingDetail, setLoadingDetail] = useState(false); // ← Nuevo estado
+  const [showDetailModal, setShowDetailModal] = useState(false);
+  const [detailProduct, setDetailProduct] = useState<Product | null>(null);
+  const [loadingDetail, setLoadingDetail] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState<string | null>(
     null,
   );
+
+  // Estados para búsqueda
+  const [searchTerm, setSearchTerm] = useState("");
+  const [debouncedSearchTerm, setDebouncedSearchTerm] = useState("");
+  const [searchTimeout, setSearchTimeout] = useState<NodeJS.Timeout | null>(
+    null,
+  );
+
   const [filters, setFilters] = useState({
     status: initialStatus || "",
     store: initialStore || "",
@@ -63,18 +62,38 @@ export default function ProductsTable({
   });
   const [total, setTotal] = useState(0);
 
+  // Efecto para debounce de búsqueda
+  useEffect(() => {
+    if (searchTimeout) {
+      clearTimeout(searchTimeout);
+    }
+
+    const timeout = setTimeout(() => {
+      setDebouncedSearchTerm(searchTerm);
+      setFilters((prev) => ({ ...prev, skip: 0 }));
+    }, 500);
+
+    setSearchTimeout(timeout);
+
+    return () => {
+      if (searchTimeout) {
+        clearTimeout(searchTimeout);
+      }
+    };
+  }, [searchTerm]);
+
   // Cargar productos
   const loadProducts = async () => {
     setLoading(true);
-    setError(null);
     try {
-      const response = await getProducts(filters);
+      const response = await getProducts({
+        ...filters,
+        search: debouncedSearchTerm || undefined,
+      });
       setProducts(response.products);
       setTotal(response.total);
     } catch (err) {
-      setError(
-        err instanceof Error ? err.message : "Error al cargar productos",
-      );
+      console.error("Error al cargar productos:", err);
     } finally {
       setLoading(false);
     }
@@ -82,7 +101,25 @@ export default function ProductsTable({
 
   useEffect(() => {
     loadProducts();
-  }, [filters]);
+  }, [filters, debouncedSearchTerm]);
+
+  // Función para filtrar productos localmente (fallback)
+  const filterProducts = (products: Product[]) => {
+    if (!debouncedSearchTerm) return products;
+
+    const searchLower = debouncedSearchTerm.toLowerCase();
+    return products.filter(
+      (product) =>
+        product.product_name?.toLowerCase().includes(searchLower) ||
+        product.product_id?.toLowerCase().includes(searchLower) ||
+        product.sku?.toLowerCase().includes(searchLower) ||
+        product.brand?.toLowerCase().includes(searchLower) ||
+        product.store?.store_name?.toLowerCase().includes(searchLower),
+    );
+  };
+
+  // Productos filtrados
+  const filteredProducts = filterProducts(products);
 
   // Ver detalle de producto
   const handleViewDetail = async (productId: string) => {
@@ -168,12 +205,6 @@ export default function ProductsTable({
     });
   };
 
-  // Formatear precio
-  const formatPrice = (price: string | null) => {
-    if (!price) return "-";
-    return price;
-  };
-
   // Obtener color según estado
   const getStatusBadge = (status: string) => {
     const colors = {
@@ -208,12 +239,28 @@ export default function ProductsTable({
   return (
     <>
       <div className="space-y-4">
-        {/* Filtros */}
-        <div className="bg-white p-4 rounded-lg shadow-sm flex gap-4 flex-wrap">
+        {/* Filtros y buscador */}
+        <div className="bg-white p-4 rounded-lg shadow-sm flex gap-4 flex-wrap items-center">
+          {/* Buscador */}
+          <div className="flex-1 min-w-[300px] relative">
+            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+              <Search size={18} className="text-gray-400" />
+            </div>
+            <input
+              type="text"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              placeholder="Buscar por nombre, ID, SKU o marca..."
+              className="w-full pl-10 pr-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+            />
+          </div>
+
           <select
             value={filters.status}
-            onChange={(e) => setFilters({ ...filters, status: e.target.value })}
-            className="px-3 py-2 border rounded-lg"
+            onChange={(e) =>
+              setFilters({ ...filters, status: e.target.value, skip: 0 })
+            }
+            className="px-3 py-2 border rounded-lg min-w-[150px]"
           >
             <option value="">Todos los estados</option>
             <option value="draft">Borrador</option>
@@ -223,8 +270,10 @@ export default function ProductsTable({
 
           <select
             value={filters.store}
-            onChange={(e) => setFilters({ ...filters, store: e.target.value })}
-            className="px-3 py-2 border rounded-lg"
+            onChange={(e) =>
+              setFilters({ ...filters, store: e.target.value, skip: 0 })
+            }
+            className="px-3 py-2 border rounded-lg min-w-[150px]"
           >
             <option value="">Todas las tiendas</option>
             <option value="falabella">Falabella</option>
@@ -235,14 +284,16 @@ export default function ProductsTable({
 
           <button
             onClick={loadProducts}
-            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 flex items-center gap-2"
+            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 flex items-center gap-2 whitespace-nowrap"
           >
             <RefreshCw size={16} />
             Actualizar
           </button>
 
-          <span className="text-sm text-gray-600 self-center">
-            Total: {total} productos
+          <span className="text-sm text-gray-600 self-center whitespace-nowrap">
+            {filteredProducts.length} productos
+            {debouncedSearchTerm &&
+              ` encontrados para "${debouncedSearchTerm}"`}
           </span>
         </div>
 
@@ -276,7 +327,7 @@ export default function ProductsTable({
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
-                {products.map((product) => (
+                {filteredProducts.map((product) => (
                   <tr
                     key={product.product_id}
                     className="hover:bg-gray-50 cursor-pointer"
@@ -490,46 +541,15 @@ export default function ProductsTable({
             </table>
           </div>
 
-          {products.length === 0 && !loading && (
+          {filteredProducts.length === 0 && !loading && (
             <div className="text-center py-12 text-gray-500">
               No se encontraron productos
-            </div>
-          )}
-
-          {/* Paginación simple */}
-          {total > filters.limit && (
-            <div className="px-6 py-4 border-t flex justify-between items-center">
-              <button
-                onClick={() =>
-                  setFilters({
-                    ...filters,
-                    skip: Math.max(0, filters.skip - filters.limit),
-                  })
-                }
-                disabled={filters.skip === 0}
-                className="px-4 py-2 border rounded disabled:opacity-50"
-              >
-                Anterior
-              </button>
-              <span>
-                {filters.skip + 1} -{" "}
-                {Math.min(filters.skip + filters.limit, total)} de {total}
-              </span>
-              <button
-                onClick={() =>
-                  setFilters({ ...filters, skip: filters.skip + filters.limit })
-                }
-                disabled={filters.skip + filters.limit >= total}
-                className="px-4 py-2 border rounded disabled:opacity-50"
-              >
-                Siguiente
-              </button>
             </div>
           )}
         </div>
       </div>
 
-      {/* Modal de Detalle usando el componente existente */}
+      {/* Modal de Detalle */}
       <Modal
         isOpen={showDetailModal}
         onClose={closeDetailModal}
@@ -612,7 +632,6 @@ export default function ProductsTable({
                 <div className="grid grid-cols-3 gap-4">
                   <div className="bg-gray-50 p-4 rounded-lg">
                     <div className="flex items-center gap-2 text-sm text-gray-600 mb-1">
-                      <Tag size={16} />
                       <span>ID Producto:</span>
                     </div>
                     <div className="flex items-center justify-between">
@@ -634,7 +653,6 @@ export default function ProductsTable({
                   {detailProduct.sku && (
                     <div className="bg-gray-50 p-4 rounded-lg">
                       <div className="flex items-center gap-2 text-sm text-gray-600 mb-1">
-                        <Tag size={16} />
                         <span>SKU:</span>
                       </div>
                       <div className="flex items-center justify-between">
