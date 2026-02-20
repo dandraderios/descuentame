@@ -97,6 +97,9 @@ export default function ProductsTable({
     setLoadingDetail(true);
     try {
       const product = await getProduct(productId);
+      console.log("🔍 Producto recibido:", product);
+      console.log("🔍 _id presente?:", product._id);
+      console.log("🔍 Todas las keys:", Object.keys(product));
       setDetailProduct(product);
       setShowDetailModal(true);
     } catch (err) {
@@ -134,9 +137,25 @@ export default function ProductsTable({
   // Generar link para Instagram
   const getInstagramLink = (product: Product) => {
     const baseUrl = "https://links.descuenta.me/click";
-    const productId = product._id || product.product_id;
+
+    // Priorizar _id de MongoDB si existe, sino usar product_id
+    const idToUse = product._id || product.product_id;
+
+    if (!idToUse) {
+      console.error("❌ No hay ID disponible");
+      return "#";
+    }
+
     const storeId = product.store?.store_id || "tienda";
-    return `${baseUrl}/${productId}?source=instagram&campaign=${storeId}`;
+
+    // Log para debug
+    console.log("🔗 Generando link:", {
+      usando: product._id ? "_id" : "product_id",
+      id: idToUse,
+      url: `${baseUrl}/${idToUse}?source=instagram&campaign=${storeId}`,
+    });
+
+    return `${baseUrl}/${idToUse}?source=instagram&campaign=${storeId}`;
   };
 
   // Cambiar estado de producto

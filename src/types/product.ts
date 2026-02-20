@@ -18,6 +18,7 @@ export interface PriceInfo {
 }
 
 export interface Product {
+  _id?: string;
   product_id: string;
   store: StoreInfo;
   product_name: string;
