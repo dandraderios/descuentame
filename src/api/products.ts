@@ -1,3 +1,4 @@
+// src/api/products.ts
 import {
   Product,
   ProductListResponse,

@@ -1,3 +1,4 @@
+// src/components/tables/BasicTables/ProductsTable.tsx
 import { useState, useEffect } from "react";
 import { Product } from "../../../types/product";
 import {
@@ -50,10 +51,6 @@ export default function ProductsTable({
   // Estados para búsqueda
   const [searchTerm, setSearchTerm] = useState("");
   const [debouncedSearchTerm, setDebouncedSearchTerm] = useState("");
-  const [searchTimeout, setSearchTimeout] = useState<NodeJS.Timeout | null>(
-    null,
-  );
-
   const [filters, setFilters] = useState({
     status: initialStatus || "",
     store: initialStore || "",
@@ -62,24 +59,14 @@ export default function ProductsTable({
   });
   const [total, setTotal] = useState(0);
 
-  // Efecto para debounce de búsqueda
+  // Efecto para debounce de búsqueda (sin NodeJS.Timeout)
   useEffect(() => {
-    if (searchTimeout) {
-      clearTimeout(searchTimeout);
-    }
-
-    const timeout = setTimeout(() => {
+    const timeoutId = window.setTimeout(() => {
       setDebouncedSearchTerm(searchTerm);
       setFilters((prev) => ({ ...prev, skip: 0 }));
     }, 500);
 
-    setSearchTimeout(timeout);
-
-    return () => {
-      if (searchTimeout) {
-        clearTimeout(searchTimeout);
-      }
-    };
+    return () => window.clearTimeout(timeoutId);
   }, [searchTerm]);
 
   // Cargar productos
@@ -102,24 +89,6 @@ export default function ProductsTable({
   useEffect(() => {
     loadProducts();
   }, [filters, debouncedSearchTerm]);
-
-  // Función para filtrar productos localmente (fallback)
-  const filterProducts = (products: Product[]) => {
-    if (!debouncedSearchTerm) return products;
-
-    const searchLower = debouncedSearchTerm.toLowerCase();
-    return products.filter(
-      (product) =>
-        product.product_name?.toLowerCase().includes(searchLower) ||
-        product.product_id?.toLowerCase().includes(searchLower) ||
-        product.sku?.toLowerCase().includes(searchLower) ||
-        product.brand?.toLowerCase().includes(searchLower) ||
-        product.store?.store_name?.toLowerCase().includes(searchLower),
-    );
-  };
-
-  // Productos filtrados
-  const filteredProducts = filterProducts(products);
 
   // Ver detalle de producto
   const handleViewDetail = async (productId: string) => {
@@ -291,9 +260,8 @@ export default function ProductsTable({
           </button>
 
           <span className="text-sm text-gray-600 self-center whitespace-nowrap">
-            {filteredProducts.length} productos
-            {debouncedSearchTerm &&
-              ` encontrados para "${debouncedSearchTerm}"`}
+            {products.length} productos
+            {debouncedSearchTerm && ` filtrados para "${debouncedSearchTerm}"`}
           </span>
         </div>
 
@@ -327,7 +295,7 @@ export default function ProductsTable({
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
-                {filteredProducts.map((product) => (
+                {products.map((product) => (
                   <tr
                     key={product.product_id}
                     className="hover:bg-gray-50 cursor-pointer"
@@ -541,7 +509,7 @@ export default function ProductsTable({
             </table>
           </div>
 
-          {filteredProducts.length === 0 && !loading && (
+          {products.length === 0 && !loading && (
             <div className="text-center py-12 text-gray-500">
               No se encontraron productos
             </div>
