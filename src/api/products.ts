@@ -1,4 +1,3 @@
-// src/api/products.ts
 import {
   Product,
   ProductListResponse,
@@ -6,8 +5,15 @@ import {
   ProductUpdateRequest,
 } from "../types/product";
 
+// Debug: ver qué variable de entorno está disponible
+console.log(
+  "🔍 VITE_API_BASE_URL from import.meta.env:",
+  import.meta.env.VITE_API_BASE_URL,
+);
+
 const API_BASE_URL =
   import.meta.env.VITE_API_BASE_URL || "http://localhost:8001";
+console.log("🔍 Final API_BASE_URL:", API_BASE_URL);
 
 // Headers por defecto
 const headers = {
@@ -32,6 +38,8 @@ async function handleResponse<T>(response: Response): Promise<T> {
 export async function getProducts(
   request: ProductListRequest = {},
 ): Promise<ProductListResponse> {
+  console.log("📡 Llamando a:", `${API_BASE_URL}/api/v1/products/list`);
+
   const response = await fetch(`${API_BASE_URL}/api/v1/products/list`, {
     method: "POST",
     headers,
@@ -55,19 +63,6 @@ export async function getProduct(productId: string): Promise<Product> {
     method: "POST",
     headers,
     body: JSON.stringify({ product_id: productId }),
-  });
-
-  return handleResponse<Product>(response);
-}
-
-// Actualizar un producto
-export async function updateProduct(
-  request: ProductUpdateRequest,
-): Promise<Product> {
-  const response = await fetch(`${API_BASE_URL}/api/v1/products/update`, {
-    method: "POST",
-    headers,
-    body: JSON.stringify(request),
   });
 
   return handleResponse<Product>(response);
@@ -113,16 +108,6 @@ export async function detectStore(
   return handleResponse<{ detected_store: string }>(response);
 }
 
-// Listar tiendas disponibles
-export async function listStores(): Promise<{ stores: any[] }> {
-  const response = await fetch(`${API_BASE_URL}/api/v1/stores/list`, {
-    method: "POST",
-    headers,
-  });
-
-  return handleResponse<{ stores: any[] }>(response);
-}
-
 // Generar imágenes para un producto
 export async function generateProduct(request: {
   url: string;
@@ -130,8 +115,10 @@ export async function generateProduct(request: {
   country?: string;
   generate_feed?: boolean;
   generate_story?: boolean;
-  link_afiliados?: string; // ← Nuevo campo opcional
+  link_afiliados?: string;
 }): Promise<Product> {
+  console.log("📡 Generando producto en:", `${API_BASE_URL}/api/v1/generate`);
+
   const response = await fetch(`${API_BASE_URL}/api/v1/generate`, {
     method: "POST",
     headers,
@@ -141,7 +128,7 @@ export async function generateProduct(request: {
       country: request.country || "cl",
       generate_feed: request.generate_feed ?? true,
       generate_story: request.generate_story ?? true,
-      link_afiliados: request.link_afiliados, // ← Enviar al backend
+      link_afiliados: request.link_afiliados,
     }),
   });
 
