@@ -19,10 +19,51 @@ import AppLayout from "./layout/AppLayout";
 import { ScrollToTop } from "./components/common/ScrollToTop";
 import Home from "./pages/Dashboard/Home";
 import ProductsPage from "./pages/Products";
+import { Toaster } from "react-hot-toast";
 
 export default function App() {
   return (
     <>
+      <Toaster
+        position="bottom-right"
+        reverseOrder={false}
+        gutter={8}
+        containerClassName=""
+        containerStyle={{
+          zIndex: 9999999, // ← Forzar z-index altísimo
+        }}
+        toastOptions={{
+          // Duración por defecto
+          duration: 2000,
+
+          // Estilos por tipo
+          success: {
+            duration: 2000,
+            icon: "✅",
+            style: {
+              background: "#10b981",
+              color: "white",
+              padding: "12px 24px",
+              borderRadius: "8px",
+              fontWeight: 500,
+            },
+          },
+          error: {
+            duration: 2000,
+            icon: "❌",
+            style: {
+              background: "#ef4444",
+              color: "white",
+            },
+          },
+          // Estilo por defecto
+          style: {
+            background: "#10b981",
+            color: "white",
+            zIndex: 9999999,
+          },
+        }}
+      />
       <Router>
         <ScrollToTop />
         <Routes>

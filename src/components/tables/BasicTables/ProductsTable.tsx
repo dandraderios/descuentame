@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import toast from "react-hot-toast";
 import { Product } from "../../../types/product";
 import {
   getProducts,
@@ -46,6 +47,8 @@ export default function ProductsTable({
   const [showDeleteConfirm, setShowDeleteConfirm] = useState<string | null>(
     null,
   );
+  const [showCopyToast, setShowCopyToast] = useState(false);
+  const [copyMessage, setCopyMessage] = useState("");
 
   // Estados para búsqueda
   const [searchTerm, setSearchTerm] = useState("");
@@ -111,10 +114,29 @@ export default function ProductsTable({
     setDetailProduct(null);
   };
 
-  // Copiar al portapapeles
+  // Copiar al portapapeles con toast
   const copyToClipboard = (text: string, label: string) => {
     navigator.clipboard.writeText(text);
-    alert(`${label} copiado al portapapeles`);
+    toast.success(`${label} copiado al portapapeles`, {
+      duration: 2000,
+      position: "bottom-right",
+      style: {
+        background: "#10b981",
+        color: "white",
+        padding: "12px 24px",
+        borderRadius: "8px",
+        fontWeight: 500,
+      },
+      icon: "✅",
+    });
+  };
+
+  // Generar link para Instagram
+  const getInstagramLink = (product: Product) => {
+    const baseUrl = "https://links.descuenta.me/click";
+    const productId = product._id || product.product_id;
+    const storeId = product.store?.store_id || "tienda";
+    return `${baseUrl}/${productId}?source=instagram&campaign=${storeId}`;
   };
 
   // Cambiar estado de producto
@@ -206,6 +228,13 @@ export default function ProductsTable({
 
   return (
     <>
+      {/* Toast de copiado */}
+      {showCopyToast && (
+        <div className="fixed bottom-4 right-4 bg-green-600 text-white px-4 py-2 rounded-lg shadow-lg z-50 animate-fade-in-up">
+          {copyMessage}
+        </div>
+      )}
+
       <div className="space-y-4">
         {/* Filtros y buscador */}
         <div className="bg-white p-4 rounded-lg shadow-sm flex gap-4 flex-wrap items-center">
@@ -785,6 +814,63 @@ export default function ProductsTable({
                         >
                           <Copy size={16} />
                         </button>
+                      </div>
+                    </div>
+
+                    {/* NUEVA SECCIÓN: Link para Instagram con copia rápida */}
+                    <div className="bg-gradient-to-r from-purple-50 to-pink-50 p-4 rounded-lg border border-purple-200">
+                      <div className="flex items-center justify-between mb-3">
+                        <div className="flex items-center gap-2">
+                          <span className="text-lg">📱</span>
+                          <span className="font-medium text-gray-800">
+                            Link para Instagram
+                          </span>
+                        </div>
+                        <span
+                          className={`px-2 py-1 text-xs rounded-full ${getStoreBadge(
+                            detailProduct.store.store_id,
+                          )}`}
+                        >
+                          {detailProduct.store.store_name}
+                        </span>
+                      </div>
+
+                      <div className="flex gap-2">
+                        <input
+                          type="text"
+                          value={getInstagramLink(detailProduct)}
+                          readOnly
+                          className="flex-1 px-3 py-2 border border-purple-200 rounded-lg bg-white text-sm font-mono"
+                        />
+                        <button
+                          onClick={() => {
+                            copyToClipboard(
+                              getInstagramLink(detailProduct),
+                              "Link para Instagram",
+                            );
+                          }}
+                          className="px-4 py-2 bg-gradient-to-r from-purple-600 to-pink-600 text-white rounded-lg hover:from-purple-700 hover:to-pink-700 flex items-center gap-2"
+                          title="Copiar link para Instagram"
+                        >
+                          <Copy size={16} />
+                          <span>Copiar</span>
+                        </button>
+                      </div>
+
+                      <div className="mt-2 text-xs text-gray-500 flex items-center gap-2 flex-wrap">
+                        <span>📋 Pega este link en tu:</span>
+                        <span className="bg-purple-100 text-purple-800 px-2 py-0.5 rounded-full">
+                          Bio
+                        </span>
+                        <span className="bg-pink-100 text-pink-800 px-2 py-0.5 rounded-full">
+                          Stories
+                        </span>
+                        <span className="bg-blue-100 text-blue-800 px-2 py-0.5 rounded-full">
+                          Posts
+                        </span>
+                        <span className="text-gray-400 ml-auto">
+                          source=instagram
+                        </span>
                       </div>
                     </div>
 
