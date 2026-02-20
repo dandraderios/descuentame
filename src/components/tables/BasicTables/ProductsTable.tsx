@@ -270,25 +270,25 @@ export default function ProductsTable({
             <table className="min-w-full divide-y divide-gray-200">
               <thead className="bg-gray-50">
                 <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-1/4">
                     Producto
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-24">
                     Tienda
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-20">
                     Precios
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Descuento
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-20">
+                    Dcto
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-24">
                     Estado
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-32">
                     Fecha
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-48">
                     Acciones
                   </th>
                 </tr>
@@ -380,7 +380,7 @@ export default function ProductsTable({
                     </td>
                     <td className="px-6 py-4">
                       <div
-                        className="flex gap-2"
+                        className="flex gap-2 flex-wrap"
                         onClick={(e) => e.stopPropagation()}
                       >
                         {/* Icono de imagen - Prioriza story, fallback a feed */}
@@ -411,6 +411,32 @@ export default function ProductsTable({
                           >
                             <Image size={18} />
                           </span>
+                        )}
+
+                        {/* Link de afiliado - VERDE (si existe) */}
+                        {product.link_afiliados && (
+                          <a
+                            href={product.link_afiliados}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-green-600 hover:text-green-900"
+                            title="Link de afiliado"
+                          >
+                            <Link size={18} />
+                          </a>
+                        )}
+
+                        {/* Link de tienda - MORADO (si existe) */}
+                        {product.link_market && (
+                          <a
+                            href={product.link_market}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-purple-600 hover:text-purple-900"
+                            title="Ver en tienda"
+                          >
+                            <ExternalLink size={18} />
+                          </a>
                         )}
 
                         <button
@@ -457,18 +483,6 @@ export default function ProductsTable({
                         >
                           <Archive size={18} />
                         </button>
-
-                        {product.link_market && (
-                          <a
-                            href={product.link_market}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="text-purple-600 hover:text-purple-900"
-                            title="Ver en tienda"
-                          >
-                            <ExternalLink size={18} />
-                          </a>
-                        )}
 
                         <button
                           onClick={() =>
@@ -721,12 +735,13 @@ export default function ProductsTable({
                   </div>
                 )}
 
-                {/* Links */}
+                {/* Enlaces */}
                 <div>
                   <h4 className="text-sm font-medium text-gray-700 mb-3">
                     Enlaces
                   </h4>
                   <div className="space-y-3">
+                    {/* Link del producto (URL original) */}
                     <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
                       <div className="flex items-center gap-2">
                         <Store size={16} className="text-gray-600" />
@@ -758,6 +773,7 @@ export default function ProductsTable({
                       </div>
                     </div>
 
+                    {/* Link de afiliado - VERDE */}
                     {detailProduct.link_afiliados && (
                       <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
                         <div className="flex items-center gap-2">
@@ -791,6 +807,7 @@ export default function ProductsTable({
                       </div>
                     )}
 
+                    {/* Link market - MORADO */}
                     {detailProduct.link_market && (
                       <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
                         <div className="flex items-center gap-2">
