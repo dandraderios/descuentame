@@ -2,7 +2,6 @@ import {
   Product,
   ProductListResponse,
   ProductListRequest,
-  ProductUpdateRequest,
 } from "../types/product";
 
 // Debug: ver qué variable de entorno está disponible
