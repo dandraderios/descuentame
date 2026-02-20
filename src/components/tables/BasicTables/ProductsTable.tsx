@@ -133,28 +133,16 @@ export default function ProductsTable({
     });
   };
 
-  // Generar link para Instagram - AHORA USA 'id' en lugar de '_id'
+  // En la función getInstagramLink (línea 141 aprox)
+  const LINKS_BASE_URL =
+    import.meta.env.VITE_LINKS_BASE_URL || "https://links.descuenta.me";
+
   const getInstagramLink = (product: Product) => {
-    const baseUrl = "https://links.descuenta.me/click";
-
-    // Usar 'id' (nuevo) o '_id' (viejo) o product_id como fallback
     const idToUse = product.id || product._id || product.product_id;
-
-    if (!idToUse) {
-      console.error("❌ No hay ID disponible");
-      return "#";
-    }
+    if (!idToUse) return "#";
 
     const storeId = product.store?.store_id || "tienda";
-
-    // Log para debug
-    console.log("🔗 Generando link:", {
-      usando: product.id ? "id" : product._id ? "_id" : "product_id",
-      id: idToUse,
-      url: `${baseUrl}/${idToUse}?source=instagram&campaign=${storeId}`,
-    });
-
-    return `${baseUrl}/${idToUse}?source=instagram&campaign=${storeId}`;
+    return `${LINKS_BASE_URL}/click/${idToUse}?source=instagram&campaign=${storeId}`;
   };
 
   // Cambiar estado de producto

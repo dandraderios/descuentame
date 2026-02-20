@@ -1,4 +1,5 @@
-// src/types/product.ts
+// types/product.ts
+
 export interface StoreInfo {
   store_id: string;
   store_name: string;
@@ -8,17 +9,24 @@ export interface StoreInfo {
 
 export interface PriceInfo {
   cmr_price: string | null;
+  cmr_price_validity: string | null;
+  cmr_price_date: string | null;
   current_price: string | null;
   old_price: string | null;
   discount: string | null;
   coupon: string | null;
-  installment_price?: string | null;
-  installment_quantity?: number | null;
+  installment_price: string | null;
+  installment_quantity: string | null;
   currency: string;
+  event_price_validity: string | null;
+  event_price_date: string | null;
 }
 
 export interface Product {
-  _id?: string;
+  // ✅ AÑADIR ESTE CAMPO (el que viene de MongoDB)
+  id?: string; // ← NUEVO: el _id de MongoDB mapeado como id
+  _id?: string; // ← Por compatibilidad con código anterior
+
   product_id: string;
   store: StoreInfo;
   product_name: string;
@@ -40,20 +48,17 @@ export interface Product {
   generated_at: string | null;
   metadata: Record<string, any>;
   blob_paths?: Record<string, string>;
-}
-
-export interface ApiResponse<T> {
-  success: boolean;
-  message: string;
-  data: T;
-  error?: string;
+  metrics?: {
+    total_clicks: number;
+    last_click: string | null;
+  };
 }
 
 export interface ProductListResponse {
+  products: Product[];
   total: number;
   limit: number;
   skip: number;
-  products: Product[];
 }
 
 export interface ProductListRequest {
@@ -63,16 +68,5 @@ export interface ProductListRequest {
   limit?: number;
   skip?: number;
   sort_by?: string;
-  sort_order?: "asc" | "desc";
-}
-
-export interface ProductUpdateRequest {
-  product_id: string;
-  product_name?: string;
-  status?: string;
-  link_afiliados?: string | null;
-  link_market?: string | null;
-  feed_image_url?: string | null;
-  story_image_url?: string | null;
-  metadata?: Record<string, any>;
+  sort_order?: string;
 }
