@@ -302,7 +302,22 @@ export default function ProductsTable({
                   >
                     <td className="px-6 py-4">
                       <div className="flex items-center">
-                        {product.feed_image_url ? (
+                        {/* Mostrar primera imagen de product_images si existe, si no, usar feed_image_url */}
+                        {product.product_images &&
+                        product.product_images.length > 0 ? (
+                          <img
+                            src={product.product_images[0]}
+                            alt={product.product_name}
+                            className="w-10 h-10 object-cover rounded mr-3"
+                            onError={(e) => {
+                              // Si la imagen falla, intentar con feed_image_url
+                              const target = e.target as HTMLImageElement;
+                              if (product.feed_image_url) {
+                                target.src = product.feed_image_url;
+                              }
+                            }}
+                          />
+                        ) : product.feed_image_url ? (
                           <img
                             src={product.feed_image_url}
                             alt={product.product_name}
