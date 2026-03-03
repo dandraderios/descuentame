@@ -339,6 +339,8 @@ export default function ProductsTable({
                             src={product.product_images[0]}
                             alt={product.product_name}
                             className="w-10 h-10 object-cover rounded mr-3"
+                            loading="lazy" // ← AGREGADO
+                            decoding="async" // ← AGREGADO (mejora rendimiento)
                             onError={(e) => {
                               // Si la imagen falla, intentar con feed_image_url
                               const target = e.target as HTMLImageElement;
@@ -352,6 +354,8 @@ export default function ProductsTable({
                             src={product.feed_image_url}
                             alt={product.product_name}
                             className="w-10 h-10 object-cover rounded mr-3"
+                            loading="lazy" // ← AGREGADO
+                            decoding="async" // ← AGREGADO
                           />
                         ) : (
                           <div className="w-10 h-10 bg-gray-200 rounded mr-3 flex items-center justify-center">
