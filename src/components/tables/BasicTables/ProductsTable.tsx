@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import toast from "react-hot-toast";
 import { Product } from "../../../types/product";
 import {
@@ -8,6 +8,7 @@ import {
   getProduct,
 } from "../../../api/products";
 import { Modal } from "../../ui/modal";
+import ProductImage from "../../ui/images/ProductImage"; // Ajusta la ruta según tu estructura
 
 // Iconos
 import {
@@ -50,55 +51,97 @@ export default function ProductsTable({
 
   // Estados para búsqueda
   const [searchTerm, setSearchTerm] = useState("");
-  const [debouncedSearchTerm, setDebouncedSearchTerm] = useState("");
   const [filters, setFilters] = useState({
     status: initialStatus || "",
     store: initialStore || "",
     limit: 50,
     skip: 0,
+    search: "", // Movemos search a filters
   });
   const [total, setTotal] = useState(0);
 
-  // Efecto para debounce de búsqueda
+  // Refs para control
+  const initialLoadRef = useRef(false);
+  const searchTimeoutRef = useRef<number>();
+
+  // Función loadProducts memoizada
+  const loadProducts = useCallback(
+    async (abortController?: AbortController) => {
+      setLoading(true);
+      try {
+        const response = await getProducts(
+          {
+            status: filters.status || undefined,
+            store: filters.store || undefined,
+            limit: filters.limit,
+            skip: filters.skip,
+            search: filters.search || undefined,
+          },
+          abortController?.signal,
+        );
+
+        setProducts(response.products);
+        setTotal(response.total);
+      } catch (err) {
+        if (err instanceof Error && err.name === "AbortError") {
+          return;
+        }
+        console.error("Error al cargar productos:", err);
+        toast.error("Error al cargar productos");
+      } finally {
+        setLoading(false);
+      }
+    },
+    [
+      filters.status,
+      filters.store,
+      filters.limit,
+      filters.skip,
+      filters.search,
+    ],
+  );
+
+  // ✅ ÚNICO EFECTO para carga de datos
   useEffect(() => {
-    const timeoutId = window.setTimeout(() => {
-      setDebouncedSearchTerm(searchTerm);
-      setFilters((prev) => ({ ...prev, skip: 0 }));
+    if (import.meta.env.DEV && initialLoadRef.current) {
+      return;
+    }
+
+    const abortController = new AbortController();
+    loadProducts(abortController);
+    initialLoadRef.current = true;
+
+    return () => {
+      abortController.abort();
+    };
+  }, [loadProducts]);
+
+  // ✅ Efecto para búsqueda con debounce
+  useEffect(() => {
+    if (searchTimeoutRef.current) {
+      window.clearTimeout(searchTimeoutRef.current);
+    }
+
+    searchTimeoutRef.current = window.setTimeout(() => {
+      setFilters((prev) => ({
+        ...prev,
+        search: searchTerm,
+        skip: 0,
+      }));
     }, 500);
 
-    return () => window.clearTimeout(timeoutId);
+    return () => {
+      if (searchTimeoutRef.current) {
+        window.clearTimeout(searchTimeoutRef.current);
+      }
+    };
   }, [searchTerm]);
-
-  // Cargar productos
-  const loadProducts = async () => {
-    setLoading(true);
-    try {
-      const response = await getProducts({
-        ...filters,
-        search: debouncedSearchTerm || undefined,
-      });
-      setProducts(response.products);
-      setTotal(response.total);
-    } catch (err) {
-      console.error("Error al cargar productos:", err);
-      toast.error("Error al cargar productos");
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    loadProducts();
-  }, [filters, debouncedSearchTerm]);
 
   // Ver detalle de producto
   const handleViewDetail = async (productId: string) => {
     setLoadingDetail(true);
     try {
       const product = await getProduct(productId);
-      console.log("🔍 Producto recibido:", product);
-      console.log("🔍 id presente?:", product.id || product._id);
-      console.log("🔍 Todas las keys:", Object.keys(product));
       setDetailProduct(product);
       setShowDetailModal(true);
     } catch (err) {
@@ -133,7 +176,6 @@ export default function ProductsTable({
     });
   };
 
-  // En la función getInstagramLink (línea 141 aprox)
   const LINKS_BASE_URL =
     import.meta.env.VITE_LINKS_BASE_URL || "https://links.descuenta.me";
 
@@ -158,7 +200,21 @@ export default function ProductsTable({
       if (detailProduct?.product_id === productId) {
         setDetailProduct(updated);
       }
-      toast.success(`Producto ${action}ado exitosamente`);
+
+      let message = "";
+      switch (action) {
+        case "publish":
+          message = "publicado";
+          break;
+        case "unpublish":
+          message = "despublicado";
+          break;
+        case "archive":
+          message = "archivado";
+          break;
+      }
+
+      toast.success(`Producto ${message} exitosamente`);
     } catch (err) {
       toast.error(
         `Error: ${err instanceof Error ? err.message : "Error desconocido"}`,
@@ -281,7 +337,9 @@ export default function ProductsTable({
           </select>
 
           <button
-            onClick={loadProducts}
+            onClick={() => {
+              setFilters((prev) => ({ ...prev, skip: 0 }));
+            }}
             className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 flex items-center gap-2 whitespace-nowrap"
           >
             <RefreshCw size={16} />
@@ -290,7 +348,7 @@ export default function ProductsTable({
 
           <span className="text-sm text-gray-600 self-center whitespace-nowrap">
             Total: {total} productos
-            {debouncedSearchTerm && ` (mostrando ${products.length})`}
+            {filters.search && ` (mostrando ${products.length})`}
           </span>
         </div>
 
@@ -324,7 +382,7 @@ export default function ProductsTable({
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
-                {products.map((product) => (
+                {products.map((product, index) => (
                   <tr
                     key={product.product_id}
                     className="hover:bg-gray-50 cursor-pointer"
@@ -332,36 +390,13 @@ export default function ProductsTable({
                   >
                     <td className="px-6 py-4">
                       <div className="flex items-center">
-                        {/* Mostrar primera imagen de product_images si existe, si no, usar feed_image_url */}
-                        {product.product_images &&
-                        product.product_images.length > 0 ? (
-                          <img
-                            src={product.product_images[0]}
-                            alt={product.product_name}
-                            className="w-10 h-10 object-cover rounded mr-3"
-                            loading="lazy" // ← AGREGADO
-                            decoding="async" // ← AGREGADO (mejora rendimiento)
-                            onError={(e) => {
-                              // Si la imagen falla, intentar con feed_image_url
-                              const target = e.target as HTMLImageElement;
-                              if (product.feed_image_url) {
-                                target.src = product.feed_image_url;
-                              }
-                            }}
-                          />
-                        ) : product.feed_image_url ? (
-                          <img
-                            src={product.feed_image_url}
-                            alt={product.product_name}
-                            className="w-10 h-10 object-cover rounded mr-3"
-                            loading="lazy" // ← AGREGADO
-                            decoding="async" // ← AGREGADO
-                          />
-                        ) : (
-                          <div className="w-10 h-10 bg-gray-200 rounded mr-3 flex items-center justify-center">
-                            <Image size={16} className="text-gray-400" />
-                          </div>
-                        )}
+                        {/* ✅ PRODUCTIMAGE OPTIMIZADO CON SKELETON */}
+                        <ProductImage
+                          primarySrc={product.product_images?.[0]}
+                          fallbackSrc={product.feed_image_url}
+                          alt={product.product_name}
+                          priority={index < 4} // Primeras 4 imágenes prioritarias
+                        />
                         <div>
                           <div className="font-medium text-gray-900 max-w-xs truncate">
                             {product.product_name}
@@ -822,7 +857,7 @@ export default function ProductsTable({
                       </div>
                     </div>
 
-                    {/* NUEVA SECCIÓN: Link para Instagram con copia rápida */}
+                    {/* Link para Instagram */}
                     <div className="bg-gradient-to-r from-purple-50 to-pink-50 p-4 rounded-lg border border-purple-200">
                       <div className="flex items-center justify-between mb-3">
                         <div className="flex items-center gap-2">
