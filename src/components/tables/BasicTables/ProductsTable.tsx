@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useRef } from "react";
+import { useState, useEffect } from "react";
 import toast from "react-hot-toast";
 import { Product } from "../../../types/product";
 import {
@@ -8,7 +8,6 @@ import {
   getProduct,
 } from "../../../api/products";
 import { Modal } from "../../ui/modal";
-import ProductImage from "../../ui/images/ProductImage";
 
 // Iconos
 import {
@@ -45,104 +44,61 @@ export default function ProductsTable({
   const [showDetailModal, setShowDetailModal] = useState(false);
   const [detailProduct, setDetailProduct] = useState<Product | null>(null);
   const [loadingDetail, setLoadingDetail] = useState(false);
-  // ✅ CORREGIDO: Cambiado a string | null para aceptar null en handleDelete
   const [showDeleteConfirm, setShowDeleteConfirm] = useState<string | null>(
     null,
   );
 
   // Estados para búsqueda
   const [searchTerm, setSearchTerm] = useState("");
+  const [debouncedSearchTerm, setDebouncedSearchTerm] = useState("");
   const [filters, setFilters] = useState({
     status: initialStatus || "",
     store: initialStore || "",
     limit: 50,
     skip: 0,
-    search: "",
   });
   const [total, setTotal] = useState(0);
 
-  // Refs para control
-  const initialLoadRef = useRef(false);
-  const searchTimeoutRef = useRef<number | null>(null);
-
-  // Función loadProducts memoizada
-  const loadProducts = useCallback(
-    async (abortController?: AbortController) => {
-      setLoading(true);
-      try {
-        const response = await getProducts(
-          {
-            status: filters.status || undefined,
-            store: filters.store || undefined,
-            limit: filters.limit,
-            skip: filters.skip,
-            search: filters.search || undefined,
-          },
-          abortController?.signal,
-        );
-
-        setProducts(response.products);
-        setTotal(response.total);
-      } catch (err) {
-        if (err instanceof Error && err.name === "AbortError") {
-          return;
-        }
-        console.error("Error al cargar productos:", err);
-        toast.error("Error al cargar productos");
-      } finally {
-        setLoading(false);
-      }
-    },
-    [
-      filters.status,
-      filters.store,
-      filters.limit,
-      filters.skip,
-      filters.search,
-    ],
-  );
-
-  // ✅ ÚNICO EFECTO para carga de datos
+  // Efecto para debounce de búsqueda
   useEffect(() => {
-    if (import.meta.env.DEV && initialLoadRef.current) {
-      return;
-    }
-
-    const abortController = new AbortController();
-    loadProducts(abortController);
-    initialLoadRef.current = true;
-
-    return () => {
-      abortController.abort();
-    };
-  }, [loadProducts]);
-
-  // ✅ Efecto para búsqueda con debounce
-  useEffect(() => {
-    if (searchTimeoutRef.current) {
-      window.clearTimeout(searchTimeoutRef.current);
-    }
-
-    searchTimeoutRef.current = window.setTimeout(() => {
-      setFilters((prev) => ({
-        ...prev,
-        search: searchTerm,
-        skip: 0,
-      }));
+    const timeoutId = window.setTimeout(() => {
+      setDebouncedSearchTerm(searchTerm);
+      setFilters((prev) => ({ ...prev, skip: 0 }));
     }, 500);
 
-    return () => {
-      if (searchTimeoutRef.current) {
-        window.clearTimeout(searchTimeoutRef.current);
-      }
-    };
+    return () => window.clearTimeout(timeoutId);
   }, [searchTerm]);
+
+  // Cargar productos
+  const loadProducts = async () => {
+    setLoading(true);
+    try {
+      const response = await getProducts({
+        ...filters,
+        search: debouncedSearchTerm || undefined,
+      });
+      setProducts(response.products);
+      setTotal(response.total);
+    } catch (err) {
+      console.error("Error al cargar productos:", err);
+      toast.error("Error al cargar productos");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    loadProducts();
+  }, [filters, debouncedSearchTerm]);
 
   // Ver detalle de producto
   const handleViewDetail = async (productId: string) => {
     setLoadingDetail(true);
     try {
       const product = await getProduct(productId);
+      console.log("🔍 Producto recibido:", product);
+      console.log("🔍 id presente?:", product.id || product._id);
+      console.log("🔍 Todas las keys:", Object.keys(product));
       setDetailProduct(product);
       setShowDetailModal(true);
     } catch (err) {
@@ -177,6 +133,7 @@ export default function ProductsTable({
     });
   };
 
+  // En la función getInstagramLink (línea 141 aprox)
   const LINKS_BASE_URL =
     import.meta.env.VITE_LINKS_BASE_URL || "https://links.descuenta.me";
 
@@ -201,21 +158,7 @@ export default function ProductsTable({
       if (detailProduct?.product_id === productId) {
         setDetailProduct(updated);
       }
-
-      let message = "";
-      switch (action) {
-        case "publish":
-          message = "publicado";
-          break;
-        case "unpublish":
-          message = "despublicado";
-          break;
-        case "archive":
-          message = "archivado";
-          break;
-      }
-
-      toast.success(`Producto ${message} exitosamente`);
+      toast.success(`Producto ${action}ado exitosamente`);
     } catch (err) {
       toast.error(
         `Error: ${err instanceof Error ? err.message : "Error desconocido"}`,
@@ -223,7 +166,7 @@ export default function ProductsTable({
     }
   };
 
-  // Eliminar producto - ✅ AHORA FUNCIONA con null
+  // Eliminar producto
   const handleDelete = async (productId: string) => {
     try {
       await deleteProduct(productId);
@@ -338,9 +281,7 @@ export default function ProductsTable({
           </select>
 
           <button
-            onClick={() => {
-              setFilters((prev) => ({ ...prev, skip: 0 }));
-            }}
+            onClick={loadProducts}
             className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 flex items-center gap-2 whitespace-nowrap"
           >
             <RefreshCw size={16} />
@@ -349,7 +290,7 @@ export default function ProductsTable({
 
           <span className="text-sm text-gray-600 self-center whitespace-nowrap">
             Total: {total} productos
-            {filters.search && ` (mostrando ${products.length})`}
+            {debouncedSearchTerm && ` (mostrando ${products.length})`}
           </span>
         </div>
 
@@ -383,7 +324,7 @@ export default function ProductsTable({
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
-                {products.map((product, index) => (
+                {products.map((product) => (
                   <tr
                     key={product.product_id}
                     className="hover:bg-gray-50 cursor-pointer"
@@ -391,12 +332,36 @@ export default function ProductsTable({
                   >
                     <td className="px-6 py-4">
                       <div className="flex items-center">
-                        <ProductImage
-                          primarySrc={product.product_images?.[0]}
-                          fallbackSrc={product.feed_image_url ?? undefined}
-                          alt={product.product_name}
-                          priority={index < 4}
-                        />
+                        {/* Mostrar primera imagen de product_images si existe, si no, usar feed_image_url */}
+                        {product.product_images &&
+                        product.product_images.length > 0 ? (
+                          <img
+                            src={product.product_images[0]}
+                            alt={product.product_name}
+                            className="w-10 h-10 object-cover rounded mr-3"
+                            loading="lazy" // ← AGREGADO
+                            decoding="async" // ← AGREGADO (mejora rendimiento)
+                            onError={(e) => {
+                              // Si la imagen falla, intentar con feed_image_url
+                              const target = e.target as HTMLImageElement;
+                              if (product.feed_image_url) {
+                                target.src = product.feed_image_url;
+                              }
+                            }}
+                          />
+                        ) : product.feed_image_url ? (
+                          <img
+                            src={product.feed_image_url}
+                            alt={product.product_name}
+                            className="w-10 h-10 object-cover rounded mr-3"
+                            loading="lazy" // ← AGREGADO
+                            decoding="async" // ← AGREGADO
+                          />
+                        ) : (
+                          <div className="w-10 h-10 bg-gray-200 rounded mr-3 flex items-center justify-center">
+                            <Image size={16} className="text-gray-400" />
+                          </div>
+                        )}
                         <div>
                           <div className="font-medium text-gray-900 max-w-xs truncate">
                             {product.product_name}
@@ -467,7 +432,7 @@ export default function ProductsTable({
                         className="flex gap-2 flex-wrap"
                         onClick={(e) => e.stopPropagation()}
                       >
-                        {/* Icono de imagen */}
+                        {/* Icono de imagen - Prioriza story, fallback a feed */}
                         {product.story_image_url ? (
                           <a
                             href={product.story_image_url}
@@ -497,7 +462,7 @@ export default function ProductsTable({
                           </span>
                         )}
 
-                        {/* Link de afiliado */}
+                        {/* Link de afiliado - VERDE (si existe) */}
                         {product.link_afiliados && (
                           <a
                             href={product.link_afiliados}
@@ -510,7 +475,7 @@ export default function ProductsTable({
                           </a>
                         )}
 
-                        {/* Link de tienda */}
+                        {/* Link de tienda - MORADO (si existe) */}
                         {product.link_market && (
                           <a
                             href={product.link_market}
@@ -579,27 +544,26 @@ export default function ProductsTable({
                         </button>
                       </div>
 
-                      {/* Confirmación de eliminación - ✅ CORREGIDO con null */}
-                      {showDeleteConfirm !== null &&
-                        showDeleteConfirm === product.product_id && (
-                          <div className="absolute bg-white border rounded-lg shadow-lg p-4 mt-2 z-10">
-                            <p className="text-sm mb-2">¿Eliminar producto?</p>
-                            <div className="flex gap-2">
-                              <button
-                                onClick={() => handleDelete(product.product_id)}
-                                className="px-3 py-1 bg-red-600 text-white text-sm rounded hover:bg-red-700"
-                              >
-                                Sí
-                              </button>
-                              <button
-                                onClick={() => setShowDeleteConfirm(null)}
-                                className="px-3 py-1 bg-gray-200 text-sm rounded hover:bg-gray-300"
-                              >
-                                No
-                              </button>
-                            </div>
+                      {/* Confirmación de eliminación */}
+                      {showDeleteConfirm === product.product_id && (
+                        <div className="absolute bg-white border rounded-lg shadow-lg p-4 mt-2 z-10">
+                          <p className="text-sm mb-2">¿Eliminar producto?</p>
+                          <div className="flex gap-2">
+                            <button
+                              onClick={() => handleDelete(product.product_id)}
+                              className="px-3 py-1 bg-red-600 text-white text-sm rounded hover:bg-red-700"
+                            >
+                              Sí
+                            </button>
+                            <button
+                              onClick={() => setShowDeleteConfirm(null)}
+                              className="px-3 py-1 bg-gray-200 text-sm rounded hover:bg-gray-300"
+                            >
+                              No
+                            </button>
                           </div>
-                        )}
+                        </div>
+                      )}
                     </td>
                   </tr>
                 ))}
@@ -638,16 +602,12 @@ export default function ProductsTable({
                 {/* Badges de tienda y estado */}
                 <div className="flex gap-2">
                   <span
-                    className={`px-3 py-1 text-sm rounded-full ${getStoreBadge(
-                      detailProduct.store.store_id,
-                    )}`}
+                    className={`px-3 py-1 text-sm rounded-full ${getStoreBadge(detailProduct.store.store_id)}`}
                   >
                     {detailProduct.store.store_name}
                   </span>
                   <span
-                    className={`px-3 py-1 text-sm rounded-full ${getStatusBadge(
-                      detailProduct.status,
-                    )}`}
+                    className={`px-3 py-1 text-sm rounded-full ${getStatusBadge(detailProduct.status)}`}
                   >
                     {detailProduct.status === "draft" && "Borrador"}
                     {detailProduct.status === "published" && "Publicado"}
@@ -830,7 +790,7 @@ export default function ProductsTable({
                     Enlaces
                   </h4>
                   <div className="space-y-3">
-                    {/* Link del producto */}
+                    {/* Link del producto (URL original) */}
                     <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
                       <div className="flex items-center gap-2">
                         <Store size={16} className="text-gray-600" />
@@ -862,7 +822,7 @@ export default function ProductsTable({
                       </div>
                     </div>
 
-                    {/* Link para Instagram */}
+                    {/* NUEVA SECCIÓN: Link para Instagram con copia rápida */}
                     <div className="bg-gradient-to-r from-purple-50 to-pink-50 p-4 rounded-lg border border-purple-200">
                       <div className="flex items-center justify-between mb-3">
                         <div className="flex items-center gap-2">
@@ -919,7 +879,7 @@ export default function ProductsTable({
                       </div>
                     </div>
 
-                    {/* Link de afiliado */}
+                    {/* Link de afiliado - VERDE */}
                     {detailProduct.link_afiliados && (
                       <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
                         <div className="flex items-center gap-2">
@@ -953,7 +913,7 @@ export default function ProductsTable({
                       </div>
                     )}
 
-                    {/* Link market */}
+                    {/* Link market - MORADO */}
                     {detailProduct.link_market && (
                       <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
                         <div className="flex items-center gap-2">
