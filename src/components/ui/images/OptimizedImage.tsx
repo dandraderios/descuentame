@@ -26,7 +26,7 @@ export default function OptimizedImage({
   const [error, setError] = useState(false);
   const [isVisible, setIsVisible] = useState(priority);
   const imgRef = useRef<HTMLImageElement>(null);
-  const observerRef = useRef<IntersectionObserver>();
+  const observerRef = useRef<IntersectionObserver | null>(null);
 
   // Intersection Observer para lazy loading (solo si no es priority)
   useEffect(() => {

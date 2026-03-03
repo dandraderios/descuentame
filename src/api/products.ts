@@ -33,15 +33,17 @@ async function handleResponse<T>(response: Response): Promise<T> {
   return data.data as T;
 }
 
-// Obtener lista de productos
+// Obtener lista de productos - ✅ CORREGIDO con signal
 export async function getProducts(
   request: ProductListRequest = {},
+  signal?: AbortSignal, // ← AGREGADO PARÁMETRO OPCIONAL
 ): Promise<ProductListResponse> {
   console.log("📡 Llamando a:", `${API_BASE_URL}/api/v1/products/list`);
 
   const response = await fetch(`${API_BASE_URL}/api/v1/products/list`, {
     method: "POST",
     headers,
+    signal, // ← PASAR EL SIGNAL A FETCH
     body: JSON.stringify({
       limit: request.limit || 50,
       skip: request.skip || 0,
@@ -56,11 +58,15 @@ export async function getProducts(
   return handleResponse<ProductListResponse>(response);
 }
 
-// Obtener un producto por ID
-export async function getProduct(productId: string): Promise<Product> {
+// Obtener un producto por ID - ✅ TAMBIÉN AGREGAR signal por consistencia
+export async function getProduct(
+  productId: string,
+  signal?: AbortSignal, // ← AGREGADO
+): Promise<Product> {
   const response = await fetch(`${API_BASE_URL}/api/v1/products/get`, {
     method: "POST",
     headers,
+    signal, // ← PASAR EL SIGNAL
     body: JSON.stringify({ product_id: productId }),
   });
 
@@ -70,10 +76,12 @@ export async function getProduct(productId: string): Promise<Product> {
 // Eliminar un producto
 export async function deleteProduct(
   productId: string,
+  signal?: AbortSignal, // ← AGREGADO
 ): Promise<{ success: boolean }> {
   const response = await fetch(`${API_BASE_URL}/api/v1/products/delete`, {
     method: "POST",
     headers,
+    signal, // ← PASAR EL SIGNAL
     body: JSON.stringify({ product_id: productId }),
   });
 
@@ -84,10 +92,12 @@ export async function deleteProduct(
 export async function publishProduct(
   productId: string,
   action: "publish" | "unpublish" | "archive",
+  signal?: AbortSignal, // ← AGREGADO
 ): Promise<Product> {
   const response = await fetch(`${API_BASE_URL}/api/v1/products/publish`, {
     method: "POST",
     headers,
+    signal, // ← PASAR EL SIGNAL
     body: JSON.stringify({ product_id: productId, action }),
   });
 
@@ -97,10 +107,12 @@ export async function publishProduct(
 // Detectar tienda desde URL
 export async function detectStore(
   url: string,
+  signal?: AbortSignal, // ← AGREGADO
 ): Promise<{ detected_store: string }> {
   const response = await fetch(`${API_BASE_URL}/api/v1/detect-store`, {
     method: "POST",
     headers,
+    signal, // ← PASAR EL SIGNAL
     body: JSON.stringify({ url }),
   });
 
@@ -108,19 +120,23 @@ export async function detectStore(
 }
 
 // Generar imágenes para un producto
-export async function generateProduct(request: {
-  url: string;
-  store: string;
-  country?: string;
-  generate_feed?: boolean;
-  generate_story?: boolean;
-  link_afiliados?: string;
-}): Promise<Product> {
+export async function generateProduct(
+  request: {
+    url: string;
+    store: string;
+    country?: string;
+    generate_feed?: boolean;
+    generate_story?: boolean;
+    link_afiliados?: string;
+  },
+  signal?: AbortSignal, // ← AGREGADO
+): Promise<Product> {
   console.log("📡 Generando producto en:", `${API_BASE_URL}/api/v1/generate`);
 
   const response = await fetch(`${API_BASE_URL}/api/v1/generate`, {
     method: "POST",
     headers,
+    signal, // ← PASAR EL SIGNAL
     body: JSON.stringify({
       url: request.url,
       store: request.store,

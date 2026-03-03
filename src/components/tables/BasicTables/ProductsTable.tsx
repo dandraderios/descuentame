@@ -8,7 +8,7 @@ import {
   getProduct,
 } from "../../../api/products";
 import { Modal } from "../../ui/modal";
-import ProductImage from "../../ui/images/ProductImage"; // Ajusta la ruta según tu estructura
+import ProductImage from "../../ui/images/ProductImage";
 
 // Iconos
 import {
@@ -45,6 +45,7 @@ export default function ProductsTable({
   const [showDetailModal, setShowDetailModal] = useState(false);
   const [detailProduct, setDetailProduct] = useState<Product | null>(null);
   const [loadingDetail, setLoadingDetail] = useState(false);
+  // ✅ CORREGIDO: Cambiado a string | null para aceptar null en handleDelete
   const [showDeleteConfirm, setShowDeleteConfirm] = useState<string | null>(
     null,
   );
@@ -56,13 +57,13 @@ export default function ProductsTable({
     store: initialStore || "",
     limit: 50,
     skip: 0,
-    search: "", // Movemos search a filters
+    search: "",
   });
   const [total, setTotal] = useState(0);
 
   // Refs para control
   const initialLoadRef = useRef(false);
-  const searchTimeoutRef = useRef<number>();
+  const searchTimeoutRef = useRef<number | null>(null);
 
   // Función loadProducts memoizada
   const loadProducts = useCallback(
@@ -222,7 +223,7 @@ export default function ProductsTable({
     }
   };
 
-  // Eliminar producto
+  // Eliminar producto - ✅ AHORA FUNCIONA con null
   const handleDelete = async (productId: string) => {
     try {
       await deleteProduct(productId);
@@ -390,12 +391,11 @@ export default function ProductsTable({
                   >
                     <td className="px-6 py-4">
                       <div className="flex items-center">
-                        {/* ✅ PRODUCTIMAGE OPTIMIZADO CON SKELETON */}
                         <ProductImage
                           primarySrc={product.product_images?.[0]}
-                          fallbackSrc={product.feed_image_url}
+                          fallbackSrc={product.feed_image_url ?? undefined}
                           alt={product.product_name}
-                          priority={index < 4} // Primeras 4 imágenes prioritarias
+                          priority={index < 4}
                         />
                         <div>
                           <div className="font-medium text-gray-900 max-w-xs truncate">
@@ -467,7 +467,7 @@ export default function ProductsTable({
                         className="flex gap-2 flex-wrap"
                         onClick={(e) => e.stopPropagation()}
                       >
-                        {/* Icono de imagen - Prioriza story, fallback a feed */}
+                        {/* Icono de imagen */}
                         {product.story_image_url ? (
                           <a
                             href={product.story_image_url}
@@ -497,7 +497,7 @@ export default function ProductsTable({
                           </span>
                         )}
 
-                        {/* Link de afiliado - VERDE (si existe) */}
+                        {/* Link de afiliado */}
                         {product.link_afiliados && (
                           <a
                             href={product.link_afiliados}
@@ -510,7 +510,7 @@ export default function ProductsTable({
                           </a>
                         )}
 
-                        {/* Link de tienda - MORADO (si existe) */}
+                        {/* Link de tienda */}
                         {product.link_market && (
                           <a
                             href={product.link_market}
@@ -579,26 +579,27 @@ export default function ProductsTable({
                         </button>
                       </div>
 
-                      {/* Confirmación de eliminación */}
-                      {showDeleteConfirm === product.product_id && (
-                        <div className="absolute bg-white border rounded-lg shadow-lg p-4 mt-2 z-10">
-                          <p className="text-sm mb-2">¿Eliminar producto?</p>
-                          <div className="flex gap-2">
-                            <button
-                              onClick={() => handleDelete(product.product_id)}
-                              className="px-3 py-1 bg-red-600 text-white text-sm rounded hover:bg-red-700"
-                            >
-                              Sí
-                            </button>
-                            <button
-                              onClick={() => setShowDeleteConfirm(null)}
-                              className="px-3 py-1 bg-gray-200 text-sm rounded hover:bg-gray-300"
-                            >
-                              No
-                            </button>
+                      {/* Confirmación de eliminación - ✅ CORREGIDO con null */}
+                      {showDeleteConfirm !== null &&
+                        showDeleteConfirm === product.product_id && (
+                          <div className="absolute bg-white border rounded-lg shadow-lg p-4 mt-2 z-10">
+                            <p className="text-sm mb-2">¿Eliminar producto?</p>
+                            <div className="flex gap-2">
+                              <button
+                                onClick={() => handleDelete(product.product_id)}
+                                className="px-3 py-1 bg-red-600 text-white text-sm rounded hover:bg-red-700"
+                              >
+                                Sí
+                              </button>
+                              <button
+                                onClick={() => setShowDeleteConfirm(null)}
+                                className="px-3 py-1 bg-gray-200 text-sm rounded hover:bg-gray-300"
+                              >
+                                No
+                              </button>
+                            </div>
                           </div>
-                        </div>
-                      )}
+                        )}
                     </td>
                   </tr>
                 ))}
@@ -637,12 +638,16 @@ export default function ProductsTable({
                 {/* Badges de tienda y estado */}
                 <div className="flex gap-2">
                   <span
-                    className={`px-3 py-1 text-sm rounded-full ${getStoreBadge(detailProduct.store.store_id)}`}
+                    className={`px-3 py-1 text-sm rounded-full ${getStoreBadge(
+                      detailProduct.store.store_id,
+                    )}`}
                   >
                     {detailProduct.store.store_name}
                   </span>
                   <span
-                    className={`px-3 py-1 text-sm rounded-full ${getStatusBadge(detailProduct.status)}`}
+                    className={`px-3 py-1 text-sm rounded-full ${getStatusBadge(
+                      detailProduct.status,
+                    )}`}
                   >
                     {detailProduct.status === "draft" && "Borrador"}
                     {detailProduct.status === "published" && "Publicado"}
@@ -825,7 +830,7 @@ export default function ProductsTable({
                     Enlaces
                   </h4>
                   <div className="space-y-3">
-                    {/* Link del producto (URL original) */}
+                    {/* Link del producto */}
                     <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
                       <div className="flex items-center gap-2">
                         <Store size={16} className="text-gray-600" />
@@ -914,7 +919,7 @@ export default function ProductsTable({
                       </div>
                     </div>
 
-                    {/* Link de afiliado - VERDE */}
+                    {/* Link de afiliado */}
                     {detailProduct.link_afiliados && (
                       <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
                         <div className="flex items-center gap-2">
@@ -948,7 +953,7 @@ export default function ProductsTable({
                       </div>
                     )}
 
-                    {/* Link market - MORADO */}
+                    {/* Link market */}
                     {detailProduct.link_market && (
                       <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
                         <div className="flex items-center gap-2">

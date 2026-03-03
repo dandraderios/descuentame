@@ -1,12 +1,12 @@
-// components/ProductImage.tsx
 import { useState } from "react";
-import { Image } from "lucide-react";
+import { Image as ImageIcon } from "lucide-react";
 
 interface ProductImageProps {
   primarySrc?: string;
-  fallbackSrc?: string;
+  fallbackSrc?: string | null;
   alt: string;
   className?: string;
+  priority?: boolean; // ← AGREGAR ESTA LÍNEA
 }
 
 export default function ProductImage({
@@ -14,43 +14,48 @@ export default function ProductImage({
   fallbackSrc,
   alt,
   className = "w-10 h-10 object-cover rounded mr-3",
+  priority = false, // ← VALOR POR DEFECTO
 }: ProductImageProps) {
   const [imgSrc, setImgSrc] = useState(primarySrc);
   const [error, setError] = useState(false);
   const [loaded, setLoaded] = useState(false);
 
-  // Si no hay imágenes, mostrar placeholder
-  if (!primarySrc && !fallbackSrc) {
+  // Determinar la fuente final
+  const getSrc = () => {
+    if (error && fallbackSrc) return fallbackSrc;
+    return imgSrc;
+  };
+
+  const hasImages = primarySrc || fallbackSrc;
+
+  if (!hasImages) {
     return (
       <div
         className={`${className} bg-gray-200 flex items-center justify-center`}
       >
-        <Image size={16} className="text-gray-400" />
+        <ImageIcon size={16} className="text-gray-400" />
       </div>
     );
   }
 
   return (
     <div className={`relative ${className}`}>
-      {/* Skeleton mientras carga */}
       {!loaded && (
         <div className="absolute inset-0 bg-gray-200 animate-pulse rounded" />
       )}
 
       <img
-        src={error && fallbackSrc ? fallbackSrc : imgSrc}
+        src={getSrc()}
         alt={alt}
         className={`${className} ${loaded ? "opacity-100" : "opacity-0"} transition-opacity duration-300`}
-        loading="lazy"
+        loading={priority ? "eager" : "lazy"} // ← AHORA USA priority
         decoding="async"
         onLoad={() => setLoaded(true)}
         onError={(e) => {
           if (!error && fallbackSrc && fallbackSrc !== imgSrc) {
-            // Intentar con fallback
             setImgSrc(fallbackSrc);
             setError(true);
           } else {
-            // Si todo falla, mostrar placeholder
             const target = e.target as HTMLImageElement;
             target.style.display = "none";
             setLoaded(false);
