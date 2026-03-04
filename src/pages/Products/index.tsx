@@ -3,7 +3,13 @@ import PageBreadcrumb from "../../components/common/PageBreadCrumb";
 import ComponentCard from "../../components/common/ComponentCard";
 import PageMeta from "../../components/common/PageMeta";
 import ProductsTable from "../../components/tables/BasicTables/ProductsTable";
-import { generateProduct, detectStore } from "../../api/products";
+import toast from "react-hot-toast";
+import {
+  generateProduct,
+  detectStore,
+  getProduct,
+  type CrawlStartResponse,
+} from "../../api/products";
 
 export default function ProductsPage() {
   const [showGenerator, setShowGenerator] = useState(false);
@@ -17,6 +23,37 @@ export default function ProductsPage() {
     link_afiliados: "", // ← Nuevo campo
   });
   const [detectedStore, setDetectedStore] = useState<string | null>(null);
+
+  const sleep = (ms: number) =>
+    new Promise((resolve) => window.setTimeout(resolve, ms));
+
+  const resetGeneratorForm = () => {
+    setShowGenerator(false);
+    setGenerateForm({
+      url: "",
+      store: "falabella",
+      country: "cl",
+      generate_feed: true,
+      generate_story: true,
+      link_afiliados: "",
+    });
+    setDetectedStore(null);
+  };
+
+  const waitForSavedProduct = async (productId: string, maxAttempts = 12) => {
+    for (let attempt = 0; attempt < maxAttempts; attempt += 1) {
+      try {
+        const product = await getProduct(productId);
+        if (product?.product_id) {
+          return product;
+        }
+      } catch {
+        // El producto puede seguir en proceso; continuamos polling.
+      }
+      await sleep(2500);
+    }
+    return null;
+  };
 
   // Detectar tienda automáticamente
   const handleUrlChange = async (url: string) => {
@@ -37,7 +74,7 @@ export default function ProductsPage() {
     e.preventDefault();
     setGenerating(true);
     try {
-      const result = await generateProduct({
+      const result: CrawlStartResponse = await generateProduct({
         url: generateForm.url,
         store: generateForm.store,
         country: generateForm.country,
@@ -46,25 +83,31 @@ export default function ProductsPage() {
         link_afiliados: generateForm.link_afiliados || undefined, // ← Enviar link
       });
 
-      alert(`✅ Producto generado: ${result.product_name}`);
-      setShowGenerator(false);
+      toast.success(
+        result.status === "iniciado"
+          ? `Producto enviado a generar (ID: ${result.product_id})`
+          : "Producto enviado a generar. Validando guardado...",
+      );
 
-      // Limpiar formulario
-      setGenerateForm({
-        url: "",
-        store: "falabella",
-        country: "cl",
-        generate_feed: true,
-        generate_story: true,
-        link_afiliados: "",
-      });
-      setDetectedStore(null);
+      const savedProduct = await waitForSavedProduct(result.product_id);
+      if (savedProduct) {
+        resetGeneratorForm();
+        toast.success(`Producto generado exitosamente: ${savedProduct.product_name}`, {
+          duration: 2500,
+        });
+        await sleep(1200);
+        window.location.reload();
+        return;
+      }
 
-      // Recargar la tabla
-      window.location.reload();
+      toast(
+        "El producto sigue procesándose. Actualiza la tabla en unos segundos.",
+        { icon: "⏳" },
+      );
+      resetGeneratorForm();
     } catch (error) {
-      alert(
-        `❌ Error: ${error instanceof Error ? error.message : "Error desconocido"}`,
+      toast.error(
+        `Error al generar: ${error instanceof Error ? error.message : "Error desconocido"}`,
       );
     } finally {
       setGenerating(false);

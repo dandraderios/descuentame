@@ -12,7 +12,10 @@ console.log(
 
 const API_BASE_URL =
   import.meta.env.VITE_API_BASE_URL || "http://localhost:8001";
+const CRAWL_API_BASE_URL =
+  import.meta.env.VITE_CRAWL_API_BASE_URL || "http://localhost:8002";
 console.log("🔍 Final API_BASE_URL:", API_BASE_URL);
+console.log("🔍 Final CRAWL_API_BASE_URL:", CRAWL_API_BASE_URL);
 
 // Headers por defecto
 const headers = {
@@ -20,6 +23,17 @@ const headers = {
   "Cache-Control": "no-cache, no-store, max-age=0",
   Pragma: "no-cache",
 };
+
+export interface CrawlStartResponse {
+  status: string;
+  url: string;
+  store: string;
+  country: string;
+  generate_feed: boolean;
+  generate_story: boolean;
+  link_afiliados: string | null;
+  product_id: string;
+}
 
 // Función para manejar respuestas
 async function handleResponse<T>(response: Response): Promise<T> {
@@ -32,7 +46,10 @@ async function handleResponse<T>(response: Response): Promise<T> {
     );
   }
   const data = await response.json();
-  return data.data as T;
+  if (data && typeof data === "object" && "data" in data) {
+    return (data as { data: T }).data;
+  }
+  return data as T;
 }
 
 // Obtener lista de productos
@@ -52,7 +69,7 @@ export async function getProducts(
       status: request.status,
       store: request.store,
       search: request.search,
-      sort_by: request.sort_by || "created_at",
+      sort_by: request.sort_by || "updated_at",
       sort_order: request.sort_order || "desc",
     }),
   });
@@ -123,10 +140,11 @@ export async function generateProduct(request: {
   generate_feed?: boolean;
   generate_story?: boolean;
   link_afiliados?: string;
-}): Promise<Product> {
-  console.log("📡 Generando producto en:", `${API_BASE_URL}/api/v1/generate`);
+}): Promise<CrawlStartResponse> {
+  const endpoint = `${CRAWL_API_BASE_URL}/crawl`;
+  console.log("📡 Generando producto en:", endpoint);
 
-  const response = await fetch(`${API_BASE_URL}/api/v1/generate`, {
+  const response = await fetch(endpoint, {
     method: "POST",
     headers,
     cache: "no-store",
@@ -140,5 +158,5 @@ export async function generateProduct(request: {
     }),
   });
 
-  return handleResponse<Product>(response);
+  return handleResponse<CrawlStartResponse>(response);
 }

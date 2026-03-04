@@ -230,7 +230,7 @@ export default function ProductsTable({
   // Obtener color según tienda
   const getStoreBadge = (storeId: string) => {
     const colors = {
-      falabella: "bg-red-100 text-red-800",
+      falabella: "bg-green-200 text-green-900",
       ripley: "bg-blue-100 text-blue-800",
       paris: "bg-purple-100 text-purple-800",
       mercadolibre: "bg-yellow-100 text-yellow-800",
@@ -566,17 +566,26 @@ export default function ProductsTable({
 
                       {/* Confirmación de eliminación */}
                       {showDeleteConfirm === product.product_id && (
-                        <div className="absolute bg-white border rounded-lg shadow-lg p-4 mt-2 z-10">
+                        <div
+                          className="absolute bg-white border rounded-lg shadow-lg p-4 mt-2 z-10"
+                          onClick={(e) => e.stopPropagation()}
+                        >
                           <p className="text-sm mb-2">¿Eliminar producto?</p>
                           <div className="flex gap-2">
                             <button
-                              onClick={() => handleDelete(product.product_id)}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleDelete(product.product_id);
+                              }}
                               className="px-3 py-1 bg-red-600 text-white text-sm rounded hover:bg-red-700"
                             >
                               Sí
                             </button>
                             <button
-                              onClick={() => setShowDeleteConfirm(null)}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setShowDeleteConfirm(null);
+                              }}
                               className="px-3 py-1 bg-gray-200 text-sm rounded hover:bg-gray-300"
                             >
                               No
