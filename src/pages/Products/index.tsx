@@ -10,6 +10,7 @@ import {
   getProduct,
   type CrawlStartResponse,
 } from "../../api/products";
+import type { Product } from "../../types/product";
 
 export default function ProductsPage() {
   const [showGenerator, setShowGenerator] = useState(false);
@@ -55,6 +56,80 @@ export default function ProductsPage() {
     return null;
   };
 
+  const waitForUpdatedProduct = async (
+    productId: string,
+    previousUpdatedAt: string,
+    maxAttempts = 20,
+  ) => {
+    for (let attempt = 0; attempt < maxAttempts; attempt += 1) {
+      try {
+        const product = await getProduct(productId);
+        if (
+          product?.product_id &&
+          product.updated_at &&
+          product.updated_at !== previousUpdatedAt
+        ) {
+          return product;
+        }
+      } catch {
+        // Puede fallar mientras procesa, seguimos esperando.
+      }
+      await sleep(2500);
+    }
+    return null;
+  };
+
+  const continuePollingInBackground = ({
+    productId,
+    wasExistingProduct,
+    previousUpdatedAt,
+  }: {
+    productId: string;
+    wasExistingProduct: boolean;
+    previousUpdatedAt?: string;
+  }) => {
+    let attempts = 0;
+    const maxAttempts = 120; // ~10 minutos (cada 5s)
+
+    const poll = async () => {
+      if (attempts >= maxAttempts) {
+        toast(
+          "No se pudo confirmar el resultado automáticamente. Revisa la tabla manualmente.",
+          { icon: "⚠️" },
+        );
+        return;
+      }
+      attempts += 1;
+
+      try {
+        const product = await getProduct(productId);
+        const isUpdated =
+          !wasExistingProduct ||
+          !previousUpdatedAt ||
+          product.updated_at !== previousUpdatedAt;
+
+        if (product?.product_id && isUpdated) {
+          resetGeneratorForm();
+          toast.success(
+            wasExistingProduct
+              ? `Producto actualizado exitosamente: ${product.product_name}`
+              : `Producto generado exitosamente: ${product.product_name}`,
+            { duration: 2500 },
+          );
+          await sleep(1200);
+          window.location.reload();
+          return;
+        }
+      } catch {
+        // Ignoramos errores intermitentes mientras el backend procesa.
+      }
+
+      window.setTimeout(poll, 5000);
+    };
+
+    window.setTimeout(poll, 5000);
+  };
+
   // Detectar tienda automáticamente
   const handleUrlChange = async (url: string) => {
     setGenerateForm({ ...generateForm, url });
@@ -83,16 +158,33 @@ export default function ProductsPage() {
         link_afiliados: generateForm.link_afiliados || undefined, // ← Enviar link
       });
 
-      toast.success(
-        result.status === "iniciado"
-          ? `Producto enviado a generar (ID: ${result.product_id})`
-          : "Producto enviado a generar. Validando guardado...",
-      );
+      let savedProduct: Product | null = null;
+      let wasExistingProduct = false;
+      let existingProduct: Product | null = null;
+      try {
+        existingProduct = await getProduct(result.product_id);
+      } catch {
+        existingProduct = null;
+      }
 
-      const savedProduct = await waitForSavedProduct(result.product_id);
+      if (existingProduct?.product_id) {
+        wasExistingProduct = true;
+        toast.success("Producto ya existe, actualizando...");
+        savedProduct = await waitForUpdatedProduct(
+          result.product_id,
+          existingProduct.updated_at,
+        );
+      } else {
+        toast.success(`Producto enviado a generar (ID: ${result.product_id})`);
+        savedProduct = await waitForSavedProduct(result.product_id);
+      }
+
       if (savedProduct) {
         resetGeneratorForm();
-        toast.success(`Producto generado exitosamente: ${savedProduct.product_name}`, {
+        const successMessage = wasExistingProduct
+          ? `Producto actualizado exitosamente: ${savedProduct.product_name}`
+          : `Producto generado exitosamente: ${savedProduct.product_name}`;
+        toast.success(successMessage, {
           duration: 2500,
         });
         await sleep(1200);
@@ -104,7 +196,11 @@ export default function ProductsPage() {
         "El producto sigue procesándose. Actualiza la tabla en unos segundos.",
         { icon: "⏳" },
       );
-      resetGeneratorForm();
+      continuePollingInBackground({
+        productId: result.product_id,
+        wasExistingProduct,
+        previousUpdatedAt: existingProduct?.updated_at,
+      });
     } catch (error) {
       toast.error(
         `Error al generar: ${error instanceof Error ? error.message : "Error desconocido"}`,
