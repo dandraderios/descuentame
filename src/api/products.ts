@@ -17,6 +17,8 @@ console.log("🔍 Final API_BASE_URL:", API_BASE_URL);
 // Headers por defecto
 const headers = {
   "Content-Type": "application/json",
+  "Cache-Control": "no-cache, no-store, max-age=0",
+  Pragma: "no-cache",
 };
 
 // Función para manejar respuestas
@@ -37,11 +39,13 @@ async function handleResponse<T>(response: Response): Promise<T> {
 export async function getProducts(
   request: ProductListRequest = {},
 ): Promise<ProductListResponse> {
-  console.log("📡 Llamando a:", `${API_BASE_URL}/api/v1/products/list`);
+  const endpoint = `${API_BASE_URL}/api/v1/products/list?t=${Date.now()}`;
+  console.log("📡 Llamando a:", endpoint);
 
-  const response = await fetch(`${API_BASE_URL}/api/v1/products/list`, {
+  const response = await fetch(endpoint, {
     method: "POST",
     headers,
+    cache: "no-store",
     body: JSON.stringify({
       limit: request.limit || 50,
       skip: request.skip || 0,
@@ -61,6 +65,7 @@ export async function getProduct(productId: string): Promise<Product> {
   const response = await fetch(`${API_BASE_URL}/api/v1/products/get`, {
     method: "POST",
     headers,
+    cache: "no-store",
     body: JSON.stringify({ product_id: productId }),
   });
 
@@ -74,6 +79,7 @@ export async function deleteProduct(
   const response = await fetch(`${API_BASE_URL}/api/v1/products/delete`, {
     method: "POST",
     headers,
+    cache: "no-store",
     body: JSON.stringify({ product_id: productId }),
   });
 
@@ -88,6 +94,7 @@ export async function publishProduct(
   const response = await fetch(`${API_BASE_URL}/api/v1/products/publish`, {
     method: "POST",
     headers,
+    cache: "no-store",
     body: JSON.stringify({ product_id: productId, action }),
   });
 
@@ -101,6 +108,7 @@ export async function detectStore(
   const response = await fetch(`${API_BASE_URL}/api/v1/detect-store`, {
     method: "POST",
     headers,
+    cache: "no-store",
     body: JSON.stringify({ url }),
   });
 
@@ -121,6 +129,7 @@ export async function generateProduct(request: {
   const response = await fetch(`${API_BASE_URL}/api/v1/generate`, {
     method: "POST",
     headers,
+    cache: "no-store",
     body: JSON.stringify({
       url: request.url,
       store: request.store,

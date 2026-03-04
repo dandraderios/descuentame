@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import toast from "react-hot-toast";
 import { Product } from "../../../types/product";
 import {
@@ -47,6 +47,7 @@ export default function ProductsTable({
   const [showDeleteConfirm, setShowDeleteConfirm] = useState<string | null>(
     null,
   );
+  const [showImages, setShowImages] = useState(false);
 
   // Estados para búsqueda
   const [searchTerm, setSearchTerm] = useState("");
@@ -70,7 +71,7 @@ export default function ProductsTable({
   }, [searchTerm]);
 
   // Cargar productos
-  const loadProducts = async () => {
+  const loadProducts = useCallback(async () => {
     setLoading(true);
     try {
       const response = await getProducts({
@@ -85,11 +86,24 @@ export default function ProductsTable({
     } finally {
       setLoading(false);
     }
-  };
+  }, [filters, debouncedSearchTerm]);
 
   useEffect(() => {
     loadProducts();
-  }, [filters, debouncedSearchTerm]);
+  }, [loadProducts]);
+
+  useEffect(() => {
+    if (products.length === 0) {
+      setShowImages(false);
+      return;
+    }
+
+    const timeoutId = window.setTimeout(() => {
+      setShowImages(true);
+    }, 350);
+
+    return () => window.clearTimeout(timeoutId);
+  }, [products]);
 
   // Ver detalle de producto
   const handleViewDetail = async (productId: string) => {
@@ -334,31 +348,37 @@ export default function ProductsTable({
                       <div className="flex items-center">
                         {/* Mostrar primera imagen de product_images si existe, si no, usar feed_image_url */}
                         {product.product_images &&
-                        product.product_images.length > 0 ? (
+                        product.product_images.length > 0 &&
+                        showImages ? (
                           <img
                             src={product.product_images[0]}
                             alt={product.product_name}
                             className="w-10 h-10 object-cover rounded mr-3"
-                            loading="lazy" // ← AGREGADO
-                            decoding="async" // ← AGREGADO (mejora rendimiento)
+                            loading="lazy"
+                            decoding="async"
+                            fetchPriority="low"
                             onError={(e) => {
                               // Si la imagen falla, intentar con feed_image_url
                               const target = e.target as HTMLImageElement;
-                              if (product.feed_image_url) {
+                              if (
+                                product.feed_image_url &&
+                                target.src !== product.feed_image_url
+                              ) {
                                 target.src = product.feed_image_url;
                               }
                             }}
                           />
-                        ) : product.feed_image_url ? (
+                        ) : product.feed_image_url && showImages ? (
                           <img
                             src={product.feed_image_url}
                             alt={product.product_name}
                             className="w-10 h-10 object-cover rounded mr-3"
-                            loading="lazy" // ← AGREGADO
-                            decoding="async" // ← AGREGADO
+                            loading="lazy"
+                            decoding="async"
+                            fetchPriority="low"
                           />
                         ) : (
-                          <div className="w-10 h-10 bg-gray-200 rounded mr-3 flex items-center justify-center">
+                          <div className="w-10 h-10 bg-gray-200 rounded mr-3 flex items-center justify-center animate-pulse">
                             <Image size={16} className="text-gray-400" />
                           </div>
                         )}

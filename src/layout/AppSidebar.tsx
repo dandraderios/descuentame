@@ -15,7 +15,7 @@ import {
   TableIcon,
   UserCircleIcon,
 } from "../icons";
-import { useSidebar } from "../context/SidebarContext";
+import { useSidebar } from "../context/useSidebar";
 import SidebarWidget from "./SidebarWidget";
 
 type NavItem = {

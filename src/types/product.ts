@@ -46,7 +46,7 @@ export interface Product {
   created_at: string;
   updated_at: string;
   generated_at: string | null;
-  metadata: Record<string, any>;
+  metadata: Record<string, unknown>;
   blob_paths?: Record<string, string>;
   metrics?: {
     total_clicks: number;
