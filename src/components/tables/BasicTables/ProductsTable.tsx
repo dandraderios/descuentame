@@ -55,10 +55,14 @@ export default function ProductsTable({
   const [filters, setFilters] = useState({
     status: initialStatus || "",
     store: initialStore || "",
-    limit: 50,
+    limit: 25,
     skip: 0,
   });
   const [total, setTotal] = useState(0);
+  const currentPage = Math.floor(filters.skip / filters.limit) + 1;
+  const totalPages = Math.max(1, Math.ceil(total / filters.limit));
+  const showingFrom = total === 0 ? 0 : filters.skip + 1;
+  const showingTo = Math.min(filters.skip + products.length, total);
 
   // Efecto para debounce de búsqueda
   useEffect(() => {
@@ -240,6 +244,14 @@ export default function ProductsTable({
     );
   };
 
+  const handlePageChange = (nextPage: number) => {
+    const boundedPage = Math.min(Math.max(nextPage, 1), totalPages);
+    setFilters((prev) => ({
+      ...prev,
+      skip: (boundedPage - 1) * prev.limit,
+    }));
+  };
+
   if (loading && products.length === 0) {
     return (
       <div className="flex justify-center items-center h-64">
@@ -310,29 +322,32 @@ export default function ProductsTable({
 
         {/* Tabla */}
         <div className="bg-white rounded-lg shadow-sm overflow-hidden">
-          <div className="overflow-x-auto">
-            <table className="min-w-full divide-y divide-gray-200">
+          <div className="overflow-x-auto lg:overflow-x-visible">
+            <table className="w-full table-auto divide-y divide-gray-200">
               <thead className="bg-gray-50">
                 <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-1/4">
+                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Producto
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-24">
+                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Tienda
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-20">
+                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Precios
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-20">
+                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Dcto
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-24">
+                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Estado
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-32">
-                    Fecha
+                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-14">
+                    Clicks
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-48">
+                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Creado
+                  </th>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Acciones
                   </th>
                 </tr>
@@ -344,7 +359,7 @@ export default function ProductsTable({
                     className="hover:bg-gray-50 cursor-pointer"
                     onClick={() => handleViewDetail(product.product_id)}
                   >
-                    <td className="px-6 py-4">
+                    <td className="px-4 py-4">
                       <div className="flex items-center">
                         {/* Mostrar primera imagen de product_images si existe, si no, usar feed_image_url */}
                         {product.product_images &&
@@ -392,14 +407,14 @@ export default function ProductsTable({
                         </div>
                       </div>
                     </td>
-                    <td className="px-6 py-4">
+                    <td className="px-4 py-4">
                       <span
                         className={`px-2 py-1 text-xs rounded-full ${getStoreBadge(product.store.store_id)}`}
                       >
                         {product.store.store_name}
                       </span>
                     </td>
-                    <td className="px-6 py-4">
+                    <td className="px-4 py-4">
                       <div className="space-y-1">
                         {product.prices.current_price && (
                           <div className="text-sm font-medium text-red-600">
@@ -418,7 +433,7 @@ export default function ProductsTable({
                         )}
                       </div>
                     </td>
-                    <td className="px-6 py-4">
+                    <td className="px-4 py-4">
                       {product.prices.discount ? (
                         <span className="px-2 py-1 text-xs bg-green-100 text-green-800 rounded-full">
                           {product.prices.discount}% OFF
@@ -432,7 +447,7 @@ export default function ProductsTable({
                         </div>
                       )}
                     </td>
-                    <td className="px-6 py-4">
+                    <td className="px-4 py-4">
                       <span
                         className={`px-2 py-1 text-xs rounded-full ${getStatusBadge(product.status)}`}
                       >
@@ -441,13 +456,30 @@ export default function ProductsTable({
                         {product.status === "archived" && "Archivado"}
                       </span>
                     </td>
-                    <td className="px-6 py-4 text-sm text-gray-500">
-                      <div className="flex items-center gap-1">
-                        <Calendar size={14} />
-                        {formatDate(product.created_at)}
+                    <td className="px-4 py-4">
+                      <div className="relative inline-flex group">
+                        <span className="inline-flex px-2 py-1 text-xs bg-indigo-100 text-indigo-800 rounded-full">
+                          {product.metrics?.total_clicks ?? 0}
+                        </span>
+                        {product.metrics?.last_click && (
+                          <div className="pointer-events-none absolute left-1/2 top-full z-20 mt-1 -translate-x-1/2 whitespace-nowrap rounded-md bg-gray-900 px-2 py-1 text-[10px] font-medium text-white opacity-0 shadow-lg transition-opacity duration-150 group-hover:opacity-100">
+                            Último click:{" "}
+                            {formatDate(product.metrics.last_click)}
+                          </div>
+                        )}
                       </div>
                     </td>
-                    <td className="px-6 py-4">
+                    <td className="px-4 py-4">
+                      <div className="relative inline-flex group">
+                        <span className="inline-flex px-2 py-1 text-[10px] leading-tight bg-gray-100 text-gray-700 rounded-full whitespace-nowrap">
+                          {formatShortDate(product.created_at)}
+                        </span>
+                        <div className="pointer-events-none absolute left-1/2 top-full z-20 mt-1 -translate-x-1/2 whitespace-nowrap rounded-md bg-gray-900 px-2 py-1 text-[10px] font-medium text-white opacity-0 shadow-lg transition-opacity duration-150 group-hover:opacity-100">
+                          {formatDate(product.created_at)}
+                        </div>
+                      </div>
+                    </td>
+                    <td className="px-4 py-4">
                       <div
                         className="flex gap-2 flex-wrap"
                         onClick={(e) => e.stopPropagation()}
@@ -603,6 +635,33 @@ export default function ProductsTable({
           {products.length === 0 && !loading && (
             <div className="text-center py-12 text-gray-500">
               No se encontraron productos
+            </div>
+          )}
+
+          {total > 0 && (
+            <div className="border-t border-gray-200 px-4 py-3 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+              <div className="text-xs text-gray-600">
+                Mostrando {showingFrom}-{showingTo} de {total}
+              </div>
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => handlePageChange(currentPage - 1)}
+                  disabled={currentPage === 1}
+                  className="px-3 py-1.5 text-sm rounded-lg border border-gray-300 disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50"
+                >
+                  Anterior
+                </button>
+                <span className="text-sm text-gray-700">
+                  Página {currentPage} de {totalPages}
+                </span>
+                <button
+                  onClick={() => handlePageChange(currentPage + 1)}
+                  disabled={currentPage >= totalPages}
+                  className="px-3 py-1.5 text-sm rounded-lg border border-gray-300 disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50"
+                >
+                  Siguiente
+                </button>
+              </div>
             </div>
           )}
         </div>
