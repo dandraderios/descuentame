@@ -236,13 +236,16 @@ export default function ProductsTable({
     const colors = {
       falabella: "bg-green-200 text-green-900",
       ripley: "bg-blue-100 text-blue-800",
-      paris: "bg-purple-100 text-purple-800",
+      paris: "bg-sky-100 text-blue-900",
       mercadolibre: "bg-yellow-100 text-yellow-800",
     };
     return (
       colors[storeId as keyof typeof colors] || "bg-gray-100 text-gray-800"
     );
   };
+
+  const getCmrLikePrice = (prices: Product["prices"]) =>
+    prices.cmr_price || prices.cenco_card_price || prices.card_price;
 
   const handlePageChange = (nextPage: number) => {
     const boundedPage = Math.min(Math.max(nextPage, 1), totalPages);
@@ -426,9 +429,10 @@ export default function ProductsTable({
                             {product.prices.old_price}
                           </div>
                         )}
-                        {product.prices.cmr_price && (
+                        {getCmrLikePrice(product.prices) && (
                           <div className="text-xs text-blue-600">
-                            CMR: {product.prices.cmr_price}
+                            {product.store.store_id === "paris" ? "CENCO" : "CMR"}:{" "}
+                            {getCmrLikePrice(product.prices)}
                           </div>
                         )}
                       </div>
@@ -829,14 +833,18 @@ export default function ProductsTable({
                         </p>
                       </div>
                     )}
-                    {detailProduct.prices.cmr_price && (
+                    {getCmrLikePrice(detailProduct.prices) && (
                       <div className="bg-blue-50 p-4 rounded-lg">
                         <div className="flex items-center gap-2 text-sm text-blue-700 mb-1">
                           <DollarSign size={16} />
-                          <span>CMR</span>
+                          <span>
+                            {detailProduct.store.store_id === "paris"
+                              ? "CENCO"
+                              : "CMR"}
+                          </span>
                         </div>
                         <p className="text-xl font-bold text-blue-600">
-                          {detailProduct.prices.cmr_price}
+                          {getCmrLikePrice(detailProduct.prices)}
                         </p>
                       </div>
                     )}

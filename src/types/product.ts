@@ -9,6 +9,8 @@ export interface StoreInfo {
 
 export interface PriceInfo {
   cmr_price: string | null;
+  card_price?: string | null;
+  cenco_card_price?: string | null;
   cmr_price_validity: string | null;
   cmr_price_date: string | null;
   current_price: string | null;
