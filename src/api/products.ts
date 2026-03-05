@@ -140,7 +140,7 @@ export async function generateProduct(request: {
   generate_feed?: boolean;
   generate_story?: boolean;
   link_afiliados?: string;
-}): Promise<CrawlStartResponse> {
+}, options?: { signal?: AbortSignal }): Promise<CrawlStartResponse> {
   const endpoint = `${CRAWL_API_BASE_URL}/crawl`;
   console.log("📡 Generando producto en:", endpoint);
 
@@ -148,6 +148,7 @@ export async function generateProduct(request: {
     method: "POST",
     headers,
     cache: "no-store",
+    signal: options?.signal,
     body: JSON.stringify({
       url: request.url,
       store: request.store,

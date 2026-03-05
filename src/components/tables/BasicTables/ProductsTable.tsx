@@ -235,7 +235,7 @@ export default function ProductsTable({
   const getStoreBadge = (storeId: string) => {
     const colors = {
       falabella: "bg-green-200 text-green-900",
-      ripley: "bg-blue-100 text-blue-800",
+      ripley: "bg-gray-900 text-white",
       paris: "bg-sky-100 text-blue-900",
       mercadolibre: "bg-yellow-100 text-yellow-800",
     };
@@ -244,8 +244,26 @@ export default function ProductsTable({
     );
   };
 
-  const getCmrLikePrice = (prices: Product["prices"]) =>
-    prices.cmr_price || prices.cenco_card_price || prices.card_price;
+  const getCardPriceInfo = (product: Product) => {
+    if (product.store.store_id === "ripley" && product.prices.ripley_card_price) {
+      return { label: "RIPLEY", value: product.prices.ripley_card_price };
+    }
+    if (product.store.store_id === "paris" && product.prices.cenco_card_price) {
+      return { label: "CENCO", value: product.prices.cenco_card_price };
+    }
+
+    const value =
+      product.prices.cmr_price ||
+      product.prices.cenco_card_price ||
+      product.prices.ripley_card_price ||
+      product.prices.card_price;
+
+    if (!value) return null;
+    return {
+      label: product.store.store_id === "paris" ? "CENCO" : "CMR",
+      value,
+    };
+  };
 
   const handlePageChange = (nextPage: number) => {
     const boundedPage = Math.min(Math.max(nextPage, 1), totalPages);
@@ -429,10 +447,10 @@ export default function ProductsTable({
                             {product.prices.old_price}
                           </div>
                         )}
-                        {getCmrLikePrice(product.prices) && (
+                        {getCardPriceInfo(product) && (
                           <div className="text-xs text-blue-600">
-                            {product.store.store_id === "paris" ? "CENCO" : "CMR"}:{" "}
-                            {getCmrLikePrice(product.prices)}
+                            {getCardPriceInfo(product)?.label}:{" "}
+                            {getCardPriceInfo(product)?.value}
                           </div>
                         )}
                       </div>
@@ -833,18 +851,14 @@ export default function ProductsTable({
                         </p>
                       </div>
                     )}
-                    {getCmrLikePrice(detailProduct.prices) && (
+                    {getCardPriceInfo(detailProduct) && (
                       <div className="bg-blue-50 p-4 rounded-lg">
                         <div className="flex items-center gap-2 text-sm text-blue-700 mb-1">
                           <DollarSign size={16} />
-                          <span>
-                            {detailProduct.store.store_id === "paris"
-                              ? "CENCO"
-                              : "CMR"}
-                          </span>
+                          <span>{getCardPriceInfo(detailProduct)?.label}</span>
                         </div>
                         <p className="text-xl font-bold text-blue-600">
-                          {getCmrLikePrice(detailProduct.prices)}
+                          {getCardPriceInfo(detailProduct)?.value}
                         </p>
                       </div>
                     )}

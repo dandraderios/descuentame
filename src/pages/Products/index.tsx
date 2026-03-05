@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useRef, useState } from "react";
 import PageBreadcrumb from "../../components/common/PageBreadCrumb";
 import ComponentCard from "../../components/common/ComponentCard";
 import PageMeta from "../../components/common/PageMeta";
@@ -24,6 +24,9 @@ export default function ProductsPage() {
     link_afiliados: "", // ← Nuevo campo
   });
   const [detectedStore, setDetectedStore] = useState<string | null>(null);
+  const generateAbortControllerRef = useRef<AbortController | null>(null);
+  const isGenerationCancelledRef = useRef(false);
+  const backgroundPollingTimeoutRef = useRef<number | null>(null);
 
   const sleep = (ms: number) =>
     new Promise((resolve) => window.setTimeout(resolve, ms));
@@ -41,8 +44,16 @@ export default function ProductsPage() {
     setDetectedStore(null);
   };
 
+  const clearBackgroundPolling = () => {
+    if (backgroundPollingTimeoutRef.current !== null) {
+      window.clearTimeout(backgroundPollingTimeoutRef.current);
+      backgroundPollingTimeoutRef.current = null;
+    }
+  };
+
   const waitForSavedProduct = async (productId: string, maxAttempts = 12) => {
     for (let attempt = 0; attempt < maxAttempts; attempt += 1) {
+      if (isGenerationCancelledRef.current) return null;
       try {
         const product = await getProduct(productId);
         if (product?.product_id) {
@@ -62,6 +73,7 @@ export default function ProductsPage() {
     maxAttempts = 20,
   ) => {
     for (let attempt = 0; attempt < maxAttempts; attempt += 1) {
+      if (isGenerationCancelledRef.current) return null;
       try {
         const product = await getProduct(productId);
         if (
@@ -88,10 +100,15 @@ export default function ProductsPage() {
     wasExistingProduct: boolean;
     previousUpdatedAt?: string;
   }) => {
+    clearBackgroundPolling();
     let attempts = 0;
     const maxAttempts = 120; // ~10 minutos (cada 5s)
 
     const poll = async () => {
+      if (isGenerationCancelledRef.current) {
+        clearBackgroundPolling();
+        return;
+      }
       if (attempts >= maxAttempts) {
         toast(
           "No se pudo confirmar el resultado automáticamente. Revisa la tabla manualmente.",
@@ -124,10 +141,10 @@ export default function ProductsPage() {
         // Ignoramos errores intermitentes mientras el backend procesa.
       }
 
-      window.setTimeout(poll, 5000);
+      backgroundPollingTimeoutRef.current = window.setTimeout(poll, 5000);
     };
 
-    window.setTimeout(poll, 5000);
+    backgroundPollingTimeoutRef.current = window.setTimeout(poll, 5000);
   };
 
   // Detectar tienda automáticamente
@@ -144,9 +161,24 @@ export default function ProductsPage() {
     }
   };
 
+  const handleCancelGenerate = (e: React.MouseEvent<HTMLButtonElement>) => {
+    e.preventDefault();
+    e.stopPropagation();
+    isGenerationCancelledRef.current = true;
+    generateAbortControllerRef.current?.abort();
+    clearBackgroundPolling();
+    setGenerating(false);
+    resetGeneratorForm();
+    toast("Generación cancelada.", { icon: "🛑" });
+  };
+
   // Generar producto
   const handleGenerate = async (e: React.FormEvent) => {
     e.preventDefault();
+    isGenerationCancelledRef.current = false;
+    clearBackgroundPolling();
+    const controller = new AbortController();
+    generateAbortControllerRef.current = controller;
     setGenerating(true);
     try {
       const result: CrawlStartResponse = await generateProduct({
@@ -156,7 +188,9 @@ export default function ProductsPage() {
         generate_feed: generateForm.generate_feed,
         generate_story: generateForm.generate_story,
         link_afiliados: generateForm.link_afiliados || undefined, // ← Enviar link
-      });
+      }, { signal: controller.signal });
+
+      if (isGenerationCancelledRef.current) return;
 
       let savedProduct: Product | null = null;
       let wasExistingProduct = false;
@@ -180,6 +214,7 @@ export default function ProductsPage() {
       }
 
       if (savedProduct) {
+        if (isGenerationCancelledRef.current) return;
         resetGeneratorForm();
         const successMessage = wasExistingProduct
           ? `Producto actualizado exitosamente: ${savedProduct.product_name}`
@@ -202,10 +237,14 @@ export default function ProductsPage() {
         previousUpdatedAt: existingProduct?.updated_at,
       });
     } catch (error) {
+      if (error instanceof DOMException && error.name === "AbortError") {
+        return;
+      }
       toast.error(
         `Error al generar: ${error instanceof Error ? error.message : "Error desconocido"}`,
       );
     } finally {
+      generateAbortControllerRef.current = null;
       setGenerating(false);
     }
   };
@@ -446,18 +485,7 @@ export default function ProductsPage() {
                 </button>
                 <button
                   type="button"
-                  onClick={() => {
-                    setShowGenerator(false);
-                    setGenerateForm({
-                      url: "",
-                      store: "falabella",
-                      country: "cl",
-                      generate_feed: true,
-                      generate_story: true,
-                      link_afiliados: "",
-                    });
-                    setDetectedStore(null);
-                  }}
+                  onClick={handleCancelGenerate}
                   className="px-6 py-2.5 bg-gray-200 text-gray-800 rounded-lg hover:bg-gray-300"
                 >
                   Cancelar
