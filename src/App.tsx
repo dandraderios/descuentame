@@ -99,8 +99,9 @@ export default function App() {
           </Route>
 
           {/* Auth Layout */}
-          <Route path="/links" element={<LinksPage />} />
+          <Route path="/lo-ultimo" element={<LinksPage />} />
           <Route path="/links-table" element={<LinksTablePage />} />
+          <Route path="/links" element={<LinksTablePage />} />
           <Route path="/signin" element={<SignIn />} />
           <Route path="/signup" element={<SignUp />} />
 
