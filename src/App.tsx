@@ -1,4 +1,5 @@
-import { BrowserRouter as Router, Routes, Route } from "react-router";
+import { useEffect } from "react";
+import { BrowserRouter as Router, Routes, Route, useLocation } from "react-router";
 import SignIn from "./pages/AuthPages/SignIn";
 import SignUp from "./pages/AuthPages/SignUp";
 import NotFound from "./pages/OtherPage/NotFound";
@@ -22,6 +23,22 @@ import ProductsPage from "./pages/Products";
 import LinksPage from "./pages/Links";
 import LinksTablePage from "./pages/LinksTable";
 import { Toaster } from "react-hot-toast";
+import { initGA, trackPageView } from "./lib/analytics";
+
+function AnalyticsTracker() {
+  const location = useLocation();
+
+  useEffect(() => {
+    initGA();
+  }, []);
+
+  useEffect(() => {
+    const fullPath = `${location.pathname}${location.search}${location.hash}`;
+    trackPageView(fullPath);
+  }, [location.pathname, location.search, location.hash]);
+
+  return null;
+}
 
 export default function App() {
   return (
@@ -67,6 +84,7 @@ export default function App() {
         }}
       />
       <Router>
+        <AnalyticsTracker />
         <ScrollToTop />
         <Routes>
           {/* Dashboard Layout */}
