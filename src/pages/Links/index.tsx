@@ -30,6 +30,55 @@ const getProductImage = (product: Product) =>
   product.story_image_url ||
   null;
 
+const LazyProductImage = ({
+  src,
+  alt,
+}: {
+  src: string | null;
+  alt: string;
+}) => {
+  const containerRef = useRef<HTMLDivElement | null>(null);
+  const [shouldLoad, setShouldLoad] = useState(false);
+  const [loaded, setLoaded] = useState(false);
+
+  useEffect(() => {
+    if (!src || !containerRef.current || shouldLoad) return;
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0]?.isIntersecting) {
+          setShouldLoad(true);
+          observer.disconnect();
+        }
+      },
+      { rootMargin: "300px 0px" },
+    );
+
+    observer.observe(containerRef.current);
+    return () => observer.disconnect();
+  }, [shouldLoad, src]);
+
+  return (
+    <div ref={containerRef} className="relative aspect-square w-full overflow-hidden">
+      {src && shouldLoad && (
+        <img
+          src={src}
+          alt={alt}
+          className={`aspect-square w-full object-cover transition-opacity duration-300 ${loaded ? "opacity-100" : "opacity-0"}`}
+          loading="lazy"
+          decoding="async"
+          fetchPriority="low"
+          onLoad={() => setLoaded(true)}
+          onError={() => setLoaded(true)}
+        />
+      )}
+      {!loaded && (
+        <div className="absolute inset-0 animate-pulse bg-gray-100" />
+      )}
+    </div>
+  );
+};
+
 const LINKS_BASE_URL =
   import.meta.env.VITE_LINKS_BASE_URL || "https://links.descuenta.me";
 const PAGE_SIZE = 10;
@@ -197,18 +246,13 @@ export default function LinksPage() {
                     key={product.product_id}
                     className="overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-theme-xs transition-transform duration-200 hover:-translate-y-0.5"
                   >
-                    <a href={productLink} target="_blank" rel="noopener noreferrer">
-                      {image ? (
-                        <img
-                          src={image}
-                          alt={product.product_name}
-                          className="aspect-square w-full object-cover"
-                          loading="lazy"
-                          decoding="async"
-                        />
-                      ) : (
-                        <div className="aspect-square w-full bg-gray-100" />
-                      )}
+                    <a
+                      href={productLink}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="block border-b border-gray-100"
+                    >
+                      <LazyProductImage src={image} alt={product.product_name} />
                     </a>
 
                     <div className="space-y-2 p-3">

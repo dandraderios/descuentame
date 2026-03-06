@@ -79,6 +79,59 @@ const getProductImage = (product: Product) =>
   product.story_image_url ||
   null;
 
+const LazyProductImage = ({
+  src,
+  alt,
+  className,
+  placeholderClassName,
+}: {
+  src: string | null;
+  alt: string;
+  className: string;
+  placeholderClassName: string;
+}) => {
+  const containerRef = useRef<HTMLDivElement | null>(null);
+  const [shouldLoad, setShouldLoad] = useState(false);
+  const [loaded, setLoaded] = useState(false);
+
+  useEffect(() => {
+    if (!src || !containerRef.current || shouldLoad) return;
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0]?.isIntersecting) {
+          setShouldLoad(true);
+          observer.disconnect();
+        }
+      },
+      { rootMargin: "300px 0px" },
+    );
+
+    observer.observe(containerRef.current);
+    return () => observer.disconnect();
+  }, [shouldLoad, src]);
+
+  return (
+    <div ref={containerRef} className="relative">
+      {src && shouldLoad && (
+        <img
+          src={src}
+          alt={alt}
+          className={`${className} transition-opacity duration-300 ${loaded ? "opacity-100" : "opacity-0"}`}
+          loading="lazy"
+          decoding="async"
+          fetchPriority="low"
+          onLoad={() => setLoaded(true)}
+          onError={() => setLoaded(true)}
+        />
+      )}
+      {!loaded && (
+        <div className={`${placeholderClassName} animate-pulse`} />
+      )}
+    </div>
+  );
+};
+
 const LINKS_BASE_URL =
   import.meta.env.VITE_LINKS_BASE_URL || "https://links.descuenta.me";
 const PAGE_SIZE = 10;
@@ -366,17 +419,12 @@ export default function LinksTablePage() {
                         >
                           <td className="px-3 py-2.5">
                             <div className="flex min-w-0 items-start gap-3">
-                              {image ? (
-                                <img
-                                  src={image}
-                                  alt={productName}
-                                  className="h-16 w-16 shrink-0 rounded-xl object-cover sm:h-20 sm:w-20"
-                                  loading="lazy"
-                                  decoding="async"
-                                />
-                              ) : (
-                                <div className="h-16 w-16 shrink-0 rounded-xl bg-gray-100 sm:h-20 sm:w-20" />
-                              )}
+                              <LazyProductImage
+                                src={image}
+                                alt={productName}
+                                className="h-16 w-16 shrink-0 rounded-xl object-cover sm:h-20 sm:w-20"
+                                placeholderClassName="h-16 w-16 shrink-0 rounded-xl bg-gray-100 sm:h-20 sm:w-20"
+                              />
                               <div className="min-w-0 flex-1">
                                 <div className="md:flex md:items-start md:justify-between md:gap-3">
                                   <p className="text-sm font-medium text-gray-800 md:pt-1">
