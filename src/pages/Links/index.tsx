@@ -101,6 +101,7 @@ export default function LinksPage() {
   const productsRef = useRef<Product[]>([]);
   const totalRef = useRef(0);
   const inFlightRef = useRef(false);
+  const tickingRef = useRef(false);
 
   const hasMore = products.length < total;
 
@@ -133,10 +134,12 @@ export default function LinksPage() {
         sort_by: "updated_at",
         sort_order: "desc",
       });
-
-      setProducts((prev) =>
-        reset ? response.products : [...prev, ...response.products],
-      );
+      const nextProducts = reset
+        ? response.products
+        : [...productsRef.current, ...response.products];
+      productsRef.current = nextProducts;
+      totalRef.current = response.total;
+      setProducts(nextProducts);
       setTotal(response.total);
     } catch (err) {
       setError(
@@ -173,6 +176,39 @@ export default function LinksPage() {
     return () => observer.disconnect();
   }, [hasMore, loadPublishedProducts]);
 
+  const tryLoadMore = useCallback(() => {
+    if (loading || loadingMore || !hasMore) return;
+    const target = loadMoreRef.current;
+    if (!target || inFlightRef.current) return;
+
+    const rect = target.getBoundingClientRect();
+    if (rect.top <= window.innerHeight + 120) {
+      void loadPublishedProducts(false);
+    }
+  }, [hasMore, loading, loadingMore, loadPublishedProducts]);
+
+  useEffect(() => {
+    tryLoadMore();
+  }, [products.length, total, tryLoadMore]);
+
+  useEffect(() => {
+    const onScrollOrResize = () => {
+      if (tickingRef.current) return;
+      tickingRef.current = true;
+      window.requestAnimationFrame(() => {
+        tickingRef.current = false;
+        tryLoadMore();
+      });
+    };
+
+    window.addEventListener("scroll", onScrollOrResize, { passive: true });
+    window.addEventListener("resize", onScrollOrResize);
+    return () => {
+      window.removeEventListener("scroll", onScrollOrResize);
+      window.removeEventListener("resize", onScrollOrResize);
+    };
+  }, [tryLoadMore]);
+
   const headerText = useMemo(() => {
     if (loading) return "Cargando productos...";
     if (error) return "Error al cargar productos";
@@ -202,7 +238,12 @@ export default function LinksPage() {
               </div>
               <div className="flex items-center gap-2">
                 <button
-                  onClick={() => loadPublishedProducts(true)}
+                  onClick={async () => {
+                    await loadPublishedProducts(true);
+                    window.requestAnimationFrame(() => {
+                      tryLoadMore();
+                    });
+                  }}
                   className="inline-flex items-center gap-1 rounded-full border border-white/40 bg-white/10 px-3 py-1.5 text-sm font-semibold text-white hover:bg-white/20"
                 >
                   <RefreshCw size={14} />

@@ -156,6 +156,7 @@ export default function LinksTablePage() {
   const productsRef = useRef<Product[]>([]);
   const totalRef = useRef(0);
   const inFlightRef = useRef(false);
+  const tickingRef = useRef(false);
 
   const [search, setSearch] = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState("");
@@ -203,9 +204,12 @@ export default function LinksTablePage() {
         sort_by: "updated_at",
         sort_order: "desc",
       });
-      setProducts((prev) =>
-        reset ? response.products : [...prev, ...response.products],
-      );
+      const nextProducts = reset
+        ? response.products
+        : [...productsRef.current, ...response.products];
+      productsRef.current = nextProducts;
+      totalRef.current = response.total;
+      setProducts(nextProducts);
       setTotal(response.total);
     } catch (err) {
       setError(
@@ -241,6 +245,39 @@ export default function LinksTablePage() {
     observer.observe(target);
     return () => observer.disconnect();
   }, [hasMore, loadPublishedProducts]);
+
+  const tryLoadMore = useCallback(() => {
+    if (loading || loadingMore || !hasMore) return;
+    const target = loadMoreRef.current;
+    if (!target || inFlightRef.current) return;
+
+    const rect = target.getBoundingClientRect();
+    if (rect.top <= window.innerHeight + 120) {
+      void loadPublishedProducts(false);
+    }
+  }, [hasMore, loading, loadingMore, loadPublishedProducts]);
+
+  useEffect(() => {
+    tryLoadMore();
+  }, [products.length, total, tryLoadMore]);
+
+  useEffect(() => {
+    const onScrollOrResize = () => {
+      if (tickingRef.current) return;
+      tickingRef.current = true;
+      window.requestAnimationFrame(() => {
+        tickingRef.current = false;
+        tryLoadMore();
+      });
+    };
+
+    window.addEventListener("scroll", onScrollOrResize, { passive: true });
+    window.addEventListener("resize", onScrollOrResize);
+    return () => {
+      window.removeEventListener("scroll", onScrollOrResize);
+      window.removeEventListener("resize", onScrollOrResize);
+    };
+  }, [tryLoadMore]);
 
   const filteredProducts = useMemo(() => {
     return products.filter((product) => {
@@ -313,7 +350,12 @@ export default function LinksTablePage() {
                   )}
                 </button>
                 <button
-                  onClick={() => loadPublishedProducts(true)}
+                  onClick={async () => {
+                    await loadPublishedProducts(true);
+                    window.requestAnimationFrame(() => {
+                      tryLoadMore();
+                    });
+                  }}
                   className="inline-flex items-center gap-1 rounded-full border border-white/40 bg-white/10 px-3 py-1.5 text-sm font-semibold text-white hover:bg-white/20"
                 >
                   <RefreshCw size={14} />
