@@ -47,7 +47,6 @@ export default function ProductsTable({
   const [showDeleteConfirm, setShowDeleteConfirm] = useState<string | null>(
     null,
   );
-  const [showImages, setShowImages] = useState(false);
 
   // Estados para búsqueda
   const [searchTerm, setSearchTerm] = useState("");
@@ -67,9 +66,9 @@ export default function ProductsTable({
   // Efecto para debounce de búsqueda
   useEffect(() => {
     const timeoutId = window.setTimeout(() => {
-      setDebouncedSearchTerm(searchTerm);
-      setFilters((prev) => ({ ...prev, skip: 0 }));
-    }, 500);
+      setDebouncedSearchTerm((prev) => (prev === searchTerm ? prev : searchTerm));
+      setFilters((prev) => (prev.skip === 0 ? prev : { ...prev, skip: 0 }));
+    }, 250);
 
     return () => window.clearTimeout(timeoutId);
   }, [searchTerm]);
@@ -95,19 +94,6 @@ export default function ProductsTable({
   useEffect(() => {
     loadProducts();
   }, [loadProducts]);
-
-  useEffect(() => {
-    if (products.length === 0) {
-      setShowImages(false);
-      return;
-    }
-
-    const timeoutId = window.setTimeout(() => {
-      setShowImages(true);
-    }, 350);
-
-    return () => window.clearTimeout(timeoutId);
-  }, [products]);
 
   // Ver detalle de producto
   const handleViewDetail = async (productId: string) => {
@@ -176,7 +162,12 @@ export default function ProductsTable({
       if (detailProduct?.product_id === productId) {
         setDetailProduct(updated);
       }
-      toast.success(`Producto ${action}ado exitosamente`);
+      const actionLabel: Record<typeof action, string> = {
+        publish: "publicado",
+        unpublish: "despublicado",
+        archive: "archivado",
+      };
+      toast.success(`Producto ${actionLabel[action]} exitosamente`);
     } catch (err) {
       toast.error(
         `Error: ${err instanceof Error ? err.message : "Error desconocido"}`,
@@ -351,9 +342,6 @@ export default function ProductsTable({
                     Producto
                   </th>
                   <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Tienda
-                  </th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Precios
                   </th>
                   <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
@@ -374,67 +362,79 @@ export default function ProductsTable({
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
-                {products.map((product) => (
-                  <tr
-                    key={product.product_id}
-                    className="hover:bg-gray-50 cursor-pointer"
-                    onClick={() => handleViewDetail(product.product_id)}
-                  >
-                    <td className="px-4 py-4">
-                      <div className="flex items-center">
-                        {/* Mostrar primera imagen de product_images si existe, si no, usar feed_image_url */}
-                        {product.product_images &&
-                        product.product_images.length > 0 &&
-                        showImages ? (
-                          <img
-                            src={product.product_images[0]}
-                            alt={product.product_name}
-                            className="w-10 h-10 object-cover rounded mr-3"
-                            loading="lazy"
-                            decoding="async"
-                            fetchPriority="low"
-                            onError={(e) => {
-                              // Si la imagen falla, intentar con feed_image_url
-                              const target = e.target as HTMLImageElement;
-                              if (
-                                product.feed_image_url &&
-                                target.src !== product.feed_image_url
-                              ) {
-                                target.src = product.feed_image_url;
-                              }
-                            }}
-                          />
-                        ) : product.feed_image_url && showImages ? (
-                          <img
-                            src={product.feed_image_url}
-                            alt={product.product_name}
-                            className="w-10 h-10 object-cover rounded mr-3"
-                            loading="lazy"
-                            decoding="async"
-                            fetchPriority="low"
-                          />
-                        ) : (
-                          <div className="w-10 h-10 bg-gray-200 rounded mr-3 flex items-center justify-center animate-pulse">
-                            <Image size={16} className="text-gray-400" />
-                          </div>
-                        )}
-                        <div>
-                          <div className="font-medium text-gray-900 max-w-xs truncate">
-                            {product.product_name}
-                          </div>
-                          <div className="text-sm text-gray-500">
-                            ID: {product.product_id}
+                {products.map((product) => {
+                  const cardPrice = getCardPriceInfo(product);
+
+                  return (
+                    <tr
+                      key={product.product_id}
+                      className="hover:bg-gray-50 cursor-pointer"
+                      onClick={() => handleViewDetail(product.product_id)}
+                    >
+                      <td className="px-4 py-4">
+                        <div className="flex items-center">
+                          {/* Mostrar primera imagen de product_images si existe, si no, usar feed_image_url */}
+                          {product.product_images &&
+                          product.product_images.length > 0 ? (
+                            <img
+                              src={product.product_images[0]}
+                              alt={product.product_name}
+                              className="w-10 h-10 object-cover rounded mr-3"
+                              loading="lazy"
+                              decoding="async"
+                              fetchPriority="low"
+                              onError={(e) => {
+                                // Si la imagen falla, intentar con feed_image_url
+                                const target = e.target as HTMLImageElement;
+                                if (
+                                  product.feed_image_url &&
+                                  target.src !== product.feed_image_url
+                                ) {
+                                  target.src = product.feed_image_url;
+                                }
+                              }}
+                            />
+                          ) : product.feed_image_url ? (
+                            <img
+                              src={product.feed_image_url}
+                              alt={product.product_name}
+                              className="w-10 h-10 object-cover rounded mr-3"
+                              loading="lazy"
+                              decoding="async"
+                              fetchPriority="low"
+                            />
+                          ) : (
+                            <div className="w-10 h-10 bg-gray-200 rounded mr-3 flex items-center justify-center">
+                              <Image size={16} className="text-gray-400" />
+                            </div>
+                          )}
+                          <div>
+                            <div className="font-medium text-gray-900 max-w-xs truncate">
+                              {product.product_name}
+                            </div>
+                            <div
+                              className="text-sm text-gray-500 flex items-center gap-2"
+                              onClick={(e) => e.stopPropagation()}
+                            >
+                              <span>ID: {product.product_id}</span>
+                              <button
+                                onClick={() =>
+                                  copyToClipboard(product.product_id, "ID")
+                                }
+                                className="text-gray-400 hover:text-blue-600"
+                                title="Copiar ID"
+                              >
+                                <Copy size={14} />
+                              </button>
+                              <span
+                                className={`px-2 py-0.5 text-[10px] rounded-full ${getStoreBadge(product.store.store_id)}`}
+                              >
+                                {product.store.store_name}
+                              </span>
+                            </div>
                           </div>
                         </div>
-                      </div>
-                    </td>
-                    <td className="px-4 py-4">
-                      <span
-                        className={`px-2 py-1 text-xs rounded-full ${getStoreBadge(product.store.store_id)}`}
-                      >
-                        {product.store.store_name}
-                      </span>
-                    </td>
+                      </td>
                     <td className="px-4 py-4">
                       <div className="space-y-1">
                         {product.prices.current_price && (
@@ -447,10 +447,9 @@ export default function ProductsTable({
                             {product.prices.old_price}
                           </div>
                         )}
-                        {getCardPriceInfo(product) && (
+                        {cardPrice && (
                           <div className="text-xs text-blue-600">
-                            {getCardPriceInfo(product)?.label}:{" "}
-                            {getCardPriceInfo(product)?.value}
+                            {cardPrice.label}: {cardPrice.value}
                           </div>
                         )}
                       </div>
@@ -648,8 +647,9 @@ export default function ProductsTable({
                         </div>
                       )}
                     </td>
-                  </tr>
-                ))}
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           </div>

@@ -19,6 +19,8 @@ import AppLayout from "./layout/AppLayout";
 import { ScrollToTop } from "./components/common/ScrollToTop";
 import Home from "./pages/Dashboard/Home";
 import ProductsPage from "./pages/Products";
+import LinksPage from "./pages/Links";
+import LinksTablePage from "./pages/LinksTable";
 import { Toaster } from "react-hot-toast";
 
 export default function App() {
@@ -97,6 +99,8 @@ export default function App() {
           </Route>
 
           {/* Auth Layout */}
+          <Route path="/links" element={<LinksPage />} />
+          <Route path="/links-table" element={<LinksTablePage />} />
           <Route path="/signin" element={<SignIn />} />
           <Route path="/signup" element={<SignUp />} />
 
