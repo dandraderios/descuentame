@@ -320,10 +320,12 @@ export default function ProductsTable({
 
           <button
             onClick={loadProducts}
-            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 flex items-center gap-2 whitespace-nowrap"
+            disabled={loading}
+            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-60 disabled:cursor-not-allowed flex items-center gap-2 whitespace-nowrap"
+            aria-busy={loading}
           >
-            <RefreshCw size={16} />
-            Actualizar
+            <RefreshCw size={16} className={loading ? "animate-spin" : ""} />
+            {loading ? "Actualizando..." : "Actualizar"}
           </button>
 
           <span className="text-sm text-gray-600 self-center whitespace-nowrap">
