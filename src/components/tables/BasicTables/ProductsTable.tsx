@@ -97,15 +97,14 @@ export default function ProductsTable({
 
   // Ver detalle de producto
   const handleViewDetail = async (productId: string) => {
+    setShowDetailModal(true);
     setLoadingDetail(true);
+    setDetailProduct(null);
     try {
       const product = await getProduct(productId);
-      console.log("🔍 Producto recibido:", product);
-      console.log("🔍 id presente?:", product.id || product._id);
-      console.log("🔍 Todas las keys:", Object.keys(product));
       setDetailProduct(product);
-      setShowDetailModal(true);
     } catch (err) {
+      setShowDetailModal(false);
       toast.error(
         `Error al cargar detalle: ${err instanceof Error ? err.message : "Error desconocido"}`,
       );
@@ -1087,33 +1086,6 @@ export default function ProductsTable({
                     </div>
                   )}
                 </div>
-
-                {/* Descripción */}
-                {detailProduct.description && (
-                  <div>
-                    <h4 className="text-sm font-medium text-gray-700 mb-2">
-                      Descripción
-                    </h4>
-                    <p className="text-sm text-gray-600 bg-gray-50 p-3 rounded-lg">
-                      {detailProduct.description}
-                    </p>
-                  </div>
-                )}
-
-                {/* Metadata */}
-                {detailProduct.metadata &&
-                  Object.keys(detailProduct.metadata).length > 0 && (
-                    <div>
-                      <h4 className="text-sm font-medium text-gray-700 mb-2">
-                        Metadatos
-                      </h4>
-                      <div className="bg-gray-50 p-3 rounded-lg">
-                        <pre className="text-xs overflow-x-auto">
-                          {JSON.stringify(detailProduct.metadata, null, 2)}
-                        </pre>
-                      </div>
-                    </div>
-                  )}
 
                 {/* Acciones dentro del modal */}
                 <div className="flex justify-end gap-3 pt-4 border-t">
