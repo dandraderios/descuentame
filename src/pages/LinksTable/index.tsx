@@ -1,10 +1,11 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   Link as LinkIcon,
   SlidersHorizontal,
   ChevronDown,
   ChevronUp,
   RefreshCw,
+  ChevronsDown,
 } from "lucide-react";
 import PageMeta from "../../components/common/PageMeta";
 import { getProducts } from "../../api/products";
@@ -80,6 +81,7 @@ const getProductImage = (product: Product) =>
 
 const LINKS_BASE_URL =
   import.meta.env.VITE_LINKS_BASE_URL || "https://links.descuenta.me";
+const PAGE_SIZE = 10;
 
 const getProductLink = (product: Product) => {
   const idToUse = product.id || product._id || product.product_id;
@@ -94,7 +96,13 @@ type BooleanFilter = "all" | "yes" | "no";
 export default function LinksTablePage() {
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [total, setTotal] = useState(0);
+  const loadMoreRef = useRef<HTMLDivElement | null>(null);
+  const productsRef = useRef<Product[]>([]);
+  const totalRef = useRef(0);
+  const inFlightRef = useRef(false);
 
   const [search, setSearch] = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState("");
@@ -103,6 +111,7 @@ export default function LinksTablePage() {
   const [couponFilter, setCouponFilter] = useState<BooleanFilter>("all");
   const [cardFilter, setCardFilter] = useState<BooleanFilter>("all");
   const [mobileFiltersOpen, setMobileFiltersOpen] = useState(false);
+  const hasMore = products.length < total;
 
   useEffect(() => {
     const timeoutId = window.setTimeout(() => {
@@ -111,32 +120,74 @@ export default function LinksTablePage() {
     return () => window.clearTimeout(timeoutId);
   }, [search]);
 
-  const loadPublishedProducts = useCallback(async () => {
-    setLoading(true);
-    setError(null);
+  useEffect(() => {
+    productsRef.current = products;
+  }, [products]);
+
+  useEffect(() => {
+    totalRef.current = total;
+  }, [total]);
+
+  const loadPublishedProducts = useCallback(async (reset = false) => {
+    if (inFlightRef.current) return;
+    if (!reset && productsRef.current.length >= totalRef.current) return;
+
+    inFlightRef.current = true;
+    if (reset) {
+      setLoading(true);
+      setError(null);
+    } else {
+      setLoadingMore(true);
+    }
+
     try {
       const response = await getProducts({
         status: "published",
-        limit: 50,
-        skip: 0,
+        limit: PAGE_SIZE,
+        skip: reset ? 0 : productsRef.current.length,
         store: storeFilter || undefined,
         search: debouncedSearch || undefined,
         sort_by: "updated_at",
         sort_order: "desc",
       });
-      setProducts(response.products);
+      setProducts((prev) =>
+        reset ? response.products : [...prev, ...response.products],
+      );
+      setTotal(response.total);
     } catch (err) {
       setError(
         err instanceof Error ? err.message : "No se pudieron cargar productos",
       );
     } finally {
-      setLoading(false);
+      inFlightRef.current = false;
+      if (reset) {
+        setLoading(false);
+      } else {
+        setLoadingMore(false);
+      }
     }
   }, [debouncedSearch, storeFilter]);
 
   useEffect(() => {
-    loadPublishedProducts();
+    loadPublishedProducts(true);
   }, [loadPublishedProducts]);
+
+  useEffect(() => {
+    const target = loadMoreRef.current;
+    if (!target || !hasMore) return;
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0]?.isIntersecting) {
+          loadPublishedProducts(false);
+        }
+      },
+      { rootMargin: "250px 0px" },
+    );
+
+    observer.observe(target);
+    return () => observer.disconnect();
+  }, [hasMore, loadPublishedProducts]);
 
   const filteredProducts = useMemo(() => {
     return products.filter((product) => {
@@ -187,7 +238,7 @@ export default function LinksTablePage() {
                 <span className="rounded-full bg-white/10 px-2.5 py-1 text-xs font-semibold text-white sm:text-sm">
                   {loading
                     ? "Cargando..."
-                    : `${filteredProducts.length} productos visibles`}
+                    : `${filteredProducts.length} visibles (${products.length}/${total})`}
                 </span>
               </div>
               <div className="flex items-center gap-2">
@@ -209,7 +260,7 @@ export default function LinksTablePage() {
                   )}
                 </button>
                 <button
-                  onClick={loadPublishedProducts}
+                  onClick={() => loadPublishedProducts(true)}
                   className="inline-flex items-center gap-1 rounded-full border border-white/40 bg-white/10 px-3 py-1.5 text-sm font-semibold text-white hover:bg-white/20"
                 >
                   <RefreshCw size={14} />
@@ -417,6 +468,26 @@ export default function LinksTablePage() {
                 </tbody>
               </table>
             </div>
+
+            {!loading && (
+              <div ref={loadMoreRef} className="border-t border-gray-100 px-4 py-4 text-center">
+                {loadingMore ? (
+                  <div className="inline-flex items-center gap-2 text-sm text-gray-600">
+                    <RefreshCw size={16} className="animate-spin" />
+                    Cargando más productos...
+                  </div>
+                ) : hasMore ? (
+                  <div className="inline-flex items-center gap-2 text-sm font-medium text-gray-500">
+                    <ChevronsDown size={18} className="animate-bounce" />
+                    Sigue haciendo scroll para cargar más
+                  </div>
+                ) : (
+                  <div className="text-sm text-gray-400">
+                    No hay más productos para cargar
+                  </div>
+                )}
+              </div>
+            )}
 
             {!loading && filteredProducts.length === 0 && (
               <div className="px-4 py-12 text-center text-sm text-gray-500">

@@ -1,5 +1,5 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
-import { RefreshCw } from "lucide-react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { RefreshCw, ChevronsDown } from "lucide-react";
 import PageMeta from "../../components/common/PageMeta";
 import { getProducts } from "../../api/products";
 import type { Product } from "../../types/product";
@@ -32,6 +32,7 @@ const getProductImage = (product: Product) =>
 
 const LINKS_BASE_URL =
   import.meta.env.VITE_LINKS_BASE_URL || "https://links.descuenta.me";
+const PAGE_SIZE = 10;
 
 const getProductLink = (product: Product) => {
   const idToUse = product.id || product._id || product.product_id;
@@ -44,38 +45,90 @@ const getProductLink = (product: Product) => {
 export default function LinksPage() {
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [total, setTotal] = useState(0);
+  const loadMoreRef = useRef<HTMLDivElement | null>(null);
+  const productsRef = useRef<Product[]>([]);
+  const totalRef = useRef(0);
+  const inFlightRef = useRef(false);
 
-  const loadPublishedProducts = useCallback(async () => {
-    setLoading(true);
-    setError(null);
+  const hasMore = products.length < total;
+
+  useEffect(() => {
+    productsRef.current = products;
+  }, [products]);
+
+  useEffect(() => {
+    totalRef.current = total;
+  }, [total]);
+
+  const loadPublishedProducts = useCallback(async (reset = false) => {
+    if (inFlightRef.current) return;
+    if (!reset && productsRef.current.length >= totalRef.current) return;
+
+    inFlightRef.current = true;
+    if (reset) {
+      setLoading(true);
+      setError(null);
+    } else {
+      setLoadingMore(true);
+    }
+
+    const skip = reset ? 0 : productsRef.current.length;
     try {
       const response = await getProducts({
         status: "published",
-        limit: 48,
-        skip: 0,
+        limit: PAGE_SIZE,
+        skip,
         sort_by: "updated_at",
         sort_order: "desc",
       });
-      setProducts(response.products);
+
+      setProducts((prev) =>
+        reset ? response.products : [...prev, ...response.products],
+      );
+      setTotal(response.total);
     } catch (err) {
       setError(
         err instanceof Error ? err.message : "No se pudieron cargar productos",
       );
     } finally {
-      setLoading(false);
+      inFlightRef.current = false;
+      if (reset) {
+        setLoading(false);
+      } else {
+        setLoadingMore(false);
+      }
     }
   }, []);
 
   useEffect(() => {
-    loadPublishedProducts();
+    loadPublishedProducts(true);
   }, [loadPublishedProducts]);
+
+  useEffect(() => {
+    const target = loadMoreRef.current;
+    if (!target || !hasMore) return;
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0]?.isIntersecting) {
+          loadPublishedProducts(false);
+        }
+      },
+      { rootMargin: "250px 0px" },
+    );
+
+    observer.observe(target);
+    return () => observer.disconnect();
+  }, [hasMore, loadPublishedProducts]);
 
   const headerText = useMemo(() => {
     if (loading) return "Cargando productos...";
     if (error) return "Error al cargar productos";
-    return `${products.length} productos publicados`;
-  }, [loading, error, products.length]);
+    return `${products.length} / ${total} productos publicados`;
+  }, [loading, error, products.length, total]);
 
   return (
     <>
@@ -100,7 +153,7 @@ export default function LinksPage() {
               </div>
               <div className="flex items-center gap-2">
                 <button
-                  onClick={loadPublishedProducts}
+                  onClick={() => loadPublishedProducts(true)}
                   className="inline-flex items-center gap-1 rounded-full border border-white/40 bg-white/10 px-3 py-1.5 text-sm font-semibold text-white hover:bg-white/20"
                 >
                   <RefreshCw size={14} />
@@ -197,6 +250,26 @@ export default function LinksPage() {
                   </article>
                 );
               })}
+            </div>
+          )}
+
+          {!loading && (
+            <div ref={loadMoreRef} className="py-6 text-center">
+              {loadingMore ? (
+                <div className="inline-flex items-center gap-2 text-sm text-gray-600">
+                  <RefreshCw size={16} className="animate-spin" />
+                  Cargando más productos...
+                </div>
+              ) : hasMore ? (
+                <div className="inline-flex items-center gap-2 text-sm font-medium text-gray-500">
+                  <ChevronsDown size={18} className="animate-bounce" />
+                  Sigue haciendo scroll para cargar más
+                </div>
+              ) : (
+                <div className="text-sm text-gray-400">
+                  No hay más productos para cargar
+                </div>
+              )}
             </div>
           )}
         </section>
