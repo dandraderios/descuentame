@@ -218,8 +218,8 @@ export default function LinksPage() {
   return (
     <>
       <PageMeta
-        title="Links | Productos Publicados"
-        description="Listado de últimos productos publicados"
+        title="Descuenta.me | Ofertas Reales, Descuentos y Comparador de Precios"
+        description="Descuenta.me rastrea y analiza precios de distintas tiendas para detectar ofertas reales con descuentos significativos, comparar promociones y ayudarte a comprar en el momento más conveniente."
       />
 
       <main className="min-h-screen bg-gray-50 px-3 py-4 sm:px-5 sm:py-6 lg:px-8">

@@ -311,8 +311,8 @@ export default function LinksTablePage() {
   return (
     <>
       <PageMeta
-        title="Links Table | Productos Publicados"
-        description="Tabla de productos publicados con filtros"
+        title="Descuenta.me | Rastreador de Ofertas Reales del Mercado"
+        description="Plataforma digital de curaduría de descuentos que monitorea precios, detecta rebajas auténticas (incluyendo descuentos sobre 50 %) y facilita decisiones de compra inteligentes."
       />
 
       <main className="min-h-screen bg-gray-50 px-3 py-4 sm:px-5 sm:py-6 lg:px-8">
