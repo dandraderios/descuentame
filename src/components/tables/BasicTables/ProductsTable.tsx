@@ -6,6 +6,7 @@ import {
   deleteProduct,
   publishProduct,
   getProduct,
+  updateProduct,
 } from "../../../api/products";
 import { Modal } from "../../ui/modal";
 
@@ -22,12 +23,16 @@ import {
   RefreshCw,
   Copy,
   Link,
+  Link2,
+  Save,
   Store,
   Clock,
   DollarSign,
   Percent,
   Award,
   Search,
+  RotateCcw,
+  X,
 } from "lucide-react";
 
 interface ProductsTableProps {
@@ -45,6 +50,13 @@ export default function ProductsTable({
   const [detailProduct, setDetailProduct] = useState<Product | null>(null);
   const [loadingDetail, setLoadingDetail] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState<string | null>(
+    null,
+  );
+  const [editingAffiliateProductId, setEditingAffiliateProductId] = useState<
+    string | null
+  >(null);
+  const [affiliateLinkDraft, setAffiliateLinkDraft] = useState("");
+  const [savingAffiliateFor, setSavingAffiliateFor] = useState<string | null>(
     null,
   );
 
@@ -171,6 +183,41 @@ export default function ProductsTable({
       toast.error(
         `Error: ${err instanceof Error ? err.message : "Error desconocido"}`,
       );
+    }
+  };
+
+  const handleOpenAffiliateEditor = (productId: string) => {
+    setEditingAffiliateProductId(productId);
+    setAffiliateLinkDraft("");
+  };
+
+  const handleSaveAffiliateLink = async (productId: string) => {
+    const trimmedLink = affiliateLinkDraft.trim();
+    if (!trimmedLink) {
+      toast.error("Ingresa un link de afiliado válido");
+      return;
+    }
+
+    try {
+      setSavingAffiliateFor(productId);
+      const updated = await updateProduct(productId, {
+        link_afiliados: trimmedLink,
+      });
+      setProducts(
+        products.map((p) => (p.product_id === productId ? updated : p)),
+      );
+      if (detailProduct?.product_id === productId) {
+        setDetailProduct(updated);
+      }
+      setEditingAffiliateProductId(null);
+      setAffiliateLinkDraft("");
+      toast.success("Link de afiliado guardado");
+    } catch (err) {
+      toast.error(
+        `Error al guardar link: ${err instanceof Error ? err.message : "Error desconocido"}`,
+      );
+    } finally {
+      setSavingAffiliateFor(null);
     }
   };
 
@@ -501,7 +548,7 @@ export default function ProductsTable({
                         </div>
                       </div>
                     </td>
-                    <td className="px-4 py-4">
+                    <td className="px-4 py-4 relative">
                       <div
                         className="flex gap-2 flex-wrap"
                         onClick={(e) => e.stopPropagation()}
@@ -547,6 +594,18 @@ export default function ProductsTable({
                           >
                             <Link size={18} />
                           </a>
+                        )}
+                        {!product.link_afiliados && (
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleOpenAffiliateEditor(product.product_id);
+                            }}
+                            className="text-green-500 hover:text-green-700"
+                            title="Agregar link afiliado"
+                          >
+                            <Link2 size={18} />
+                          </button>
                         )}
 
                         {/* Link de tienda - MORADO (si existe) */}
@@ -606,6 +665,17 @@ export default function ProductsTable({
                         >
                           <Archive size={18} />
                         </button>
+                        {product.status === "archived" && (
+                          <button
+                            onClick={() =>
+                              handleStatusChange(product.product_id, "unpublish")
+                            }
+                            className="text-blue-600 hover:text-blue-900"
+                            title="Desarchivar"
+                          >
+                            <RotateCcw size={18} />
+                          </button>
+                        )}
 
                         <button
                           onClick={() =>
@@ -617,6 +687,48 @@ export default function ProductsTable({
                           <Trash2 size={18} />
                         </button>
                       </div>
+
+                      {editingAffiliateProductId === product.product_id && (
+                        <div
+                          className="absolute right-4 top-14 z-20 w-72 rounded-lg border border-gray-200 bg-white p-3 shadow-lg"
+                          onClick={(e) => e.stopPropagation()}
+                        >
+                          <p className="mb-2 text-xs font-medium text-gray-600">
+                            Agregar link afiliado
+                          </p>
+                          <input
+                            type="url"
+                            value={affiliateLinkDraft}
+                            onChange={(e) => setAffiliateLinkDraft(e.target.value)}
+                            placeholder="https://..."
+                            className="w-full rounded border border-gray-300 px-2 py-1.5 text-sm focus:border-green-500 focus:outline-none"
+                          />
+                          <div className="mt-2 flex justify-end gap-2">
+                            <button
+                              onClick={() => {
+                                setEditingAffiliateProductId(null);
+                                setAffiliateLinkDraft("");
+                              }}
+                              className="inline-flex items-center gap-1 rounded bg-gray-100 px-2 py-1 text-xs text-gray-700 hover:bg-gray-200"
+                            >
+                              <X size={12} />
+                              Cancelar
+                            </button>
+                            <button
+                              onClick={() =>
+                                handleSaveAffiliateLink(product.product_id)
+                              }
+                              disabled={savingAffiliateFor === product.product_id}
+                              className="inline-flex items-center gap-1 rounded bg-green-600 px-2 py-1 text-xs text-white hover:bg-green-700 disabled:opacity-60"
+                            >
+                              <Save size={12} />
+                              {savingAffiliateFor === product.product_id
+                                ? "Guardando..."
+                                : "Guardar"}
+                            </button>
+                          </div>
+                        </div>
+                      )}
 
                       {/* Confirmación de eliminación */}
                       {showDeleteConfirm === product.product_id && (

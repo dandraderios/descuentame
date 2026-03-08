@@ -118,6 +118,21 @@ export async function publishProduct(
   return handleResponse<Product>(response);
 }
 
+// Actualizar campos de producto
+export async function updateProduct(
+  productId: string,
+  payload: Record<string, unknown>,
+): Promise<Product> {
+  const response = await fetch(`${API_BASE_URL}/api/v1/products/update`, {
+    method: "POST",
+    headers,
+    cache: "no-store",
+    body: JSON.stringify({ product_id: productId, ...payload }),
+  });
+
+  return handleResponse<Product>(response);
+}
+
 // Detectar tienda desde URL
 export async function detectStore(
   url: string,
