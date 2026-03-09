@@ -64,7 +64,7 @@ const getCardPriceInfo = (product: Product) => {
 
   const cmrPrice = toDisplayText(product.prices.cmr_price);
   if (cmrPrice !== "-") {
-    return { label: "Tarjeta", value: cmrPrice };
+    return { label: "CMR", value: cmrPrice };
   }
 
   const cardPrice = toDisplayText(product.prices.card_price);

@@ -6,19 +6,19 @@ import type { Product } from "../../types/product";
 
 const getCardPriceInfo = (product: Product) => {
   if (product.store.store_id === "ripley" && product.prices.ripley_card_price) {
-    return { label: "Pago Ripley", value: product.prices.ripley_card_price };
+    return { label: "Ripley", value: product.prices.ripley_card_price };
   }
 
   if (product.store.store_id === "paris" && product.prices.cenco_card_price) {
-    return { label: "Pago Cenco", value: product.prices.cenco_card_price };
+    return { label: "Cenco", value: product.prices.cenco_card_price };
   }
 
   if (product.prices.cmr_price) {
-    return { label: "Pago CMR", value: product.prices.cmr_price };
+    return { label: "CMR", value: product.prices.cmr_price };
   }
 
   if (product.prices.card_price) {
-    return { label: "Pago Tarjeta", value: product.prices.card_price };
+    return { label: "Tarjeta", value: product.prices.card_price };
   }
 
   return null;
