@@ -95,6 +95,7 @@ export default function LinksPage() {
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [total, setTotal] = useState(0);
   const loadMoreRef = useRef<HTMLDivElement | null>(null);
@@ -158,6 +159,19 @@ export default function LinksPage() {
   useEffect(() => {
     loadPublishedProducts(true);
   }, [loadPublishedProducts]);
+
+  const handleRefresh = async () => {
+    if (refreshing) return;
+    setRefreshing(true);
+    try {
+      await loadPublishedProducts(true);
+      window.requestAnimationFrame(() => {
+        tryLoadMore();
+      });
+    } finally {
+      setRefreshing(false);
+    }
+  };
 
   useEffect(() => {
     const target = loadMoreRef.current;
@@ -238,16 +252,12 @@ export default function LinksPage() {
               </div>
               <div className="flex items-center gap-2">
                 <button
-                  onClick={async () => {
-                    await loadPublishedProducts(true);
-                    window.requestAnimationFrame(() => {
-                      tryLoadMore();
-                    });
-                  }}
-                  className="inline-flex items-center gap-1 rounded-full border border-white/40 bg-white/10 px-3 py-1.5 text-sm font-semibold text-white hover:bg-white/20"
+                  onClick={handleRefresh}
+                  disabled={refreshing}
+                  className="inline-flex items-center gap-1 rounded-full border border-white/40 bg-white/10 px-3 py-1.5 text-sm font-semibold text-white hover:bg-white/20 disabled:opacity-60 disabled:cursor-not-allowed"
                 >
-                  <RefreshCw size={14} />
-                  Actualizar
+                  <RefreshCw size={14} className={refreshing ? "animate-spin" : ""} />
+                  {refreshing ? "Actualizando..." : "Actualizar"}
                 </button>
               </div>
             </div>
