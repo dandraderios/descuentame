@@ -332,7 +332,7 @@ const AppSidebar: React.FC = () => {
           )}
         </Link>
       </div>
-      <div className="flex flex-col overflow-y-auto duration-300 ease-linear no-scrollbar">
+      <div className="flex min-h-0 flex-1 flex-col overflow-y-auto pb-24 duration-300 ease-linear no-scrollbar lg:pb-6">
         <nav className="mb-6">
           <div className="flex flex-col gap-4">
             <div>
