@@ -33,7 +33,12 @@ import {
   Search,
   RotateCcw,
   X,
+  Instagram,
 } from "lucide-react";
+import {
+  previewInstagramCaption,
+  publishInstagramPost,
+} from "../../../api/social";
 
 interface ProductsTableProps {
   initialStatus?: string;
@@ -59,6 +64,25 @@ export default function ProductsTable({
   const [savingAffiliateFor, setSavingAffiliateFor] = useState<string | null>(
     null,
   );
+  const [editingInstagramProductId, setEditingInstagramProductId] = useState<
+    string | null
+  >(null);
+  const [instagramPlacement, setInstagramPlacement] = useState<"story" | "feed">(
+    "story",
+  );
+  const [instagramImageText, setInstagramImageText] = useState("");
+  const [instagramCaptionMode, setInstagramCaptionMode] = useState<"manual" | "ai">(
+    "manual",
+  );
+  const [instagramCaptionText, setInstagramCaptionText] = useState("");
+  const [publishingInstagramFor, setPublishingInstagramFor] = useState<
+    string | null
+  >(null);
+  const [previewingCaptionFor, setPreviewingCaptionFor] = useState<
+    string | null
+  >(null);
+  const [instagramCaptionPreview, setInstagramCaptionPreview] = useState("");
+  const [instagramPromptPreview, setInstagramPromptPreview] = useState("");
 
   // Estados para búsqueda
   const [searchTerm, setSearchTerm] = useState("");
@@ -187,8 +211,99 @@ export default function ProductsTable({
   };
 
   const handleOpenAffiliateEditor = (productId: string) => {
+    setEditingInstagramProductId(null);
     setEditingAffiliateProductId(productId);
     setAffiliateLinkDraft("");
+  };
+
+  const hasInstagramMedia = (product: Product) =>
+    Boolean(
+      product.story_image_url ||
+        product.feed_image_url ||
+        (product.product_images && product.product_images.length > 0) ||
+        product.screenshot_url,
+    );
+
+  const handleOpenInstagramEditor = (product: Product) => {
+    if (!hasInstagramMedia(product)) {
+      toast.error("Este producto no tiene imagen para publicar en Instagram");
+      return;
+    }
+    setEditingAffiliateProductId(null);
+    setEditingInstagramProductId(product.product_id);
+    setInstagramPlacement(product.story_image_url ? "story" : "feed");
+    setInstagramImageText("");
+    setInstagramCaptionMode("manual");
+    setInstagramCaptionText("");
+    setInstagramCaptionPreview("");
+    setInstagramPromptPreview("");
+  };
+
+  const handlePreviewInstagramCaption = async (product: Product) => {
+    try {
+      setPreviewingCaptionFor(product.product_id);
+      const result = await previewInstagramCaption({
+        product_id: product.product_id,
+        placement: "feed",
+        image_text: instagramImageText.trim() || undefined,
+        feed_caption_mode: instagramCaptionMode,
+        feed_caption_text: instagramCaptionText.trim() || undefined,
+      });
+      setInstagramCaptionPreview(result.caption || "");
+      setInstagramPromptPreview(result.prompt || "");
+      if (result.used_ai) {
+        toast.success("Preview IA generado");
+      }
+    } catch (err) {
+      toast.error(
+        `Error generando preview: ${err instanceof Error ? err.message : "Error desconocido"}`,
+      );
+    } finally {
+      setPreviewingCaptionFor(null);
+    }
+  };
+
+  const handlePublishInstagram = async (product: Product) => {
+    const imageText = instagramImageText.trim();
+    if (instagramPlacement === "story" && !imageText) {
+      toast.error("Ingresa el texto para la imagen en story");
+      return;
+    }
+
+    try {
+      setPublishingInstagramFor(product.product_id);
+      const result = await publishInstagramPost({
+        product_id: product.product_id,
+        placement: instagramPlacement,
+        image_text: imageText || undefined,
+        feed_caption_mode:
+          instagramPlacement === "feed"
+            ? instagramCaptionMode === "ai" && instagramCaptionPreview
+              ? "manual"
+              : instagramCaptionMode
+            : undefined,
+        feed_caption_text:
+          instagramPlacement === "feed"
+            ? instagramCaptionMode === "ai" && instagramCaptionPreview
+              ? instagramCaptionPreview
+              : instagramCaptionText.trim() || undefined
+            : undefined,
+      });
+      setEditingInstagramProductId(null);
+      setInstagramImageText("");
+      setInstagramCaptionText("");
+      setInstagramCaptionPreview("");
+      setInstagramPromptPreview("");
+      toast.success(
+        `Publicado en Instagram (${result.placement}) con éxito`,
+      );
+    } catch (err) {
+      toast.error(
+        `Error publicando en Instagram: ${err instanceof Error ? err.message : "Error desconocido"}`,
+      );
+    } finally {
+      setPublishingInstagramFor(null);
+    }
   };
 
   const handleSaveAffiliateLink = async (productId: string) => {
@@ -608,6 +723,26 @@ export default function ProductsTable({
                           </button>
                         )}
 
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleOpenInstagramEditor(product);
+                          }}
+                          className={`${
+                            hasInstagramMedia(product)
+                              ? "text-pink-600 hover:text-pink-800"
+                              : "cursor-not-allowed text-gray-400"
+                          }`}
+                          title={
+                            hasInstagramMedia(product)
+                              ? "Publicar en Instagram"
+                              : "Sin imagen para Instagram"
+                          }
+                          disabled={!hasInstagramMedia(product)}
+                        >
+                          <Instagram size={18} />
+                        </button>
+
                         {/* Link de tienda - MORADO (si existe) */}
                         {product.link_market && (
                           <a
@@ -725,6 +860,161 @@ export default function ProductsTable({
                               {savingAffiliateFor === product.product_id
                                 ? "Guardando..."
                                 : "Guardar"}
+                            </button>
+                          </div>
+                        </div>
+                      )}
+
+                      {editingInstagramProductId === product.product_id && (
+                        <div
+                          className="absolute right-4 top-14 z-20 w-80 rounded-lg border border-gray-200 bg-white p-3 shadow-lg dark:border-gray-700 dark:bg-gray-900"
+                          onClick={(e) => e.stopPropagation()}
+                        >
+                          <p className="mb-2 text-xs font-medium text-gray-600 dark:text-gray-300">
+                            Publicar en Instagram
+                          </p>
+                          <div className="mb-2 grid grid-cols-2 gap-2">
+                            <button
+                              onClick={() => setInstagramPlacement("story")}
+                              className={`rounded px-2 py-1 text-xs ${
+                                instagramPlacement === "story"
+                                  ? "bg-pink-600 text-white"
+                                  : "bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-200"
+                              }`}
+                            >
+                              Story
+                            </button>
+                            <button
+                              onClick={() => setInstagramPlacement("feed")}
+                              className={`rounded px-2 py-1 text-xs ${
+                                instagramPlacement === "feed"
+                                  ? "bg-pink-600 text-white"
+                                  : "bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-200"
+                              }`}
+                            >
+                              Feed
+                            </button>
+                          </div>
+
+                          <label className="mb-1 block text-[11px] text-gray-600 dark:text-gray-300">
+                            Texto en imagen (footer)
+                          </label>
+                          <input
+                            type="text"
+                            value={instagramImageText}
+                            onChange={(e) => setInstagramImageText(e.target.value)}
+                            placeholder={
+                              instagramPlacement === "story"
+                                ? "Texto para story..."
+                                : "Texto opcional en imagen..."
+                            }
+                            className="w-full rounded border border-gray-300 bg-white px-2 py-1.5 text-sm text-gray-900 focus:border-pink-500 focus:outline-none dark:border-gray-700 dark:bg-gray-800 dark:text-gray-100"
+                          />
+
+                          {instagramPlacement === "feed" && (
+                            <>
+                              <label className="mb-1 mt-2 block text-[11px] text-gray-600 dark:text-gray-300">
+                                Caption de feed
+                              </label>
+                              <div className="mb-2 grid grid-cols-2 gap-2">
+                                <button
+                                  onClick={() => setInstagramCaptionMode("manual")}
+                                  className={`rounded px-2 py-1 text-xs ${
+                                    instagramCaptionMode === "manual"
+                                      ? "bg-blue-600 text-white"
+                                      : "bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-200"
+                                  }`}
+                                >
+                                  Manual
+                                </button>
+                                <button
+                                  onClick={() => setInstagramCaptionMode("ai")}
+                                  className={`rounded px-2 py-1 text-xs ${
+                                    instagramCaptionMode === "ai"
+                                      ? "bg-blue-600 text-white"
+                                      : "bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-200"
+                                  }`}
+                                >
+                                  IA (DeepSeek)
+                                </button>
+                              </div>
+                              {instagramCaptionMode === "manual" && (
+                                <textarea
+                                  value={instagramCaptionText}
+                                  onChange={(e) =>
+                                    setInstagramCaptionText(e.target.value)
+                                  }
+                                  rows={2}
+                                  placeholder="Texto del caption (opcional)"
+                                  className="w-full rounded border border-gray-300 bg-white px-2 py-1.5 text-sm text-gray-900 focus:border-blue-500 focus:outline-none dark:border-gray-700 dark:bg-gray-800 dark:text-gray-100"
+                                />
+                              )}
+                              <div className="mt-2 flex items-center justify-between gap-2">
+                                <button
+                                  onClick={() =>
+                                    handlePreviewInstagramCaption(product)
+                                  }
+                                  disabled={
+                                    previewingCaptionFor === product.product_id
+                                  }
+                                  className="rounded bg-blue-600 px-2 py-1 text-xs text-white hover:bg-blue-700 disabled:opacity-60"
+                                >
+                                  {previewingCaptionFor === product.product_id
+                                    ? "Generando preview..."
+                                    : "Preview caption"}
+                                </button>
+                                {instagramCaptionMode === "ai" &&
+                                  instagramCaptionPreview && (
+                                    <span className="text-[11px] text-green-600 dark:text-green-400">
+                                      Se usará este preview al publicar
+                                    </span>
+                                  )}
+                              </div>
+                              {instagramCaptionPreview && (
+                                <div className="mt-2 rounded border border-gray-200 bg-gray-50 p-2 text-xs text-gray-700 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-200">
+                                  <p className="mb-1 font-semibold">
+                                    Preview caption:
+                                  </p>
+                                  <p className="whitespace-pre-wrap">
+                                    {instagramCaptionPreview}
+                                  </p>
+                                </div>
+                              )}
+                              {instagramPromptPreview &&
+                                instagramCaptionMode === "ai" && (
+                                  <details className="mt-2 rounded border border-gray-200 bg-white p-2 text-xs text-gray-600 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300">
+                                    <summary className="cursor-pointer font-medium">
+                                      Ver prompt IA
+                                    </summary>
+                                    <p className="mt-1 whitespace-pre-wrap">
+                                      {instagramPromptPreview}
+                                    </p>
+                                  </details>
+                                )}
+                            </>
+                          )}
+
+                          <div className="mt-2 flex justify-end gap-2">
+                            <button
+                              onClick={() => {
+                                setEditingInstagramProductId(null);
+                                setInstagramImageText("");
+                                setInstagramCaptionText("");
+                              }}
+                              className="inline-flex items-center gap-1 rounded bg-gray-100 px-2 py-1 text-xs text-gray-700 hover:bg-gray-200 dark:bg-gray-800 dark:text-gray-200 dark:hover:bg-gray-700"
+                            >
+                              <X size={12} />
+                              Cancelar
+                            </button>
+                            <button
+                              onClick={() => handlePublishInstagram(product)}
+                              disabled={publishingInstagramFor === product.product_id}
+                              className="inline-flex items-center gap-1 rounded bg-pink-600 px-2 py-1 text-xs text-white hover:bg-pink-700 disabled:opacity-60"
+                            >
+                              <Instagram size={12} />
+                              {publishingInstagramFor === product.product_id
+                                ? "Publicando..."
+                                : "Publicar"}
                             </button>
                           </div>
                         </div>

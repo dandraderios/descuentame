@@ -42,6 +42,32 @@ export interface InstagramStatsResponse {
   updated_at?: number;
 }
 
+export interface InstagramPublishRequest {
+  product_id: string;
+  placement: "story" | "feed";
+  image_text?: string;
+  feed_caption_mode?: "manual" | "ai";
+  feed_caption_text?: string;
+}
+
+export interface InstagramPublishResponse {
+  placement: "story" | "feed";
+  product_id: string;
+  creation_id: string;
+  post_id: string;
+  media_url: string;
+  caption?: string | null;
+  used_ai?: boolean;
+}
+
+export interface InstagramCaptionPreviewResponse {
+  placement: "story" | "feed";
+  product_id: string;
+  caption: string;
+  used_ai: boolean;
+  prompt?: string;
+}
+
 export async function getInstagramStats(): Promise<InstagramStatsResponse> {
   const response = await fetch(`${API_BASE_URL}/api/v1/social/instagram/stats`, {
     method: "POST",
@@ -50,4 +76,36 @@ export async function getInstagramStats(): Promise<InstagramStatsResponse> {
   });
 
   return handleResponse<InstagramStatsResponse>(response);
+}
+
+export async function publishInstagramPost(
+  payload: InstagramPublishRequest,
+): Promise<InstagramPublishResponse> {
+  const response = await fetch(
+    `${API_BASE_URL}/api/v1/social/instagram/publish`,
+    {
+      method: "POST",
+      headers: getHeaders(),
+      cache: "no-store",
+      body: JSON.stringify(payload),
+    },
+  );
+
+  return handleResponse<InstagramPublishResponse>(response);
+}
+
+export async function previewInstagramCaption(
+  payload: InstagramPublishRequest,
+): Promise<InstagramCaptionPreviewResponse> {
+  const response = await fetch(
+    `${API_BASE_URL}/api/v1/social/instagram/caption-preview`,
+    {
+      method: "POST",
+      headers: getHeaders(),
+      cache: "no-store",
+      body: JSON.stringify(payload),
+    },
+  );
+
+  return handleResponse<InstagramCaptionPreviewResponse>(response);
 }
