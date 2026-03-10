@@ -288,19 +288,19 @@ export default function ProductsPage() {
             <form onSubmit={handleGenerate} className="space-y-4">
               {/* URL del Producto */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+                <label className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-200">
                   URL del Producto <span className="text-red-500">*</span>
                 </label>
                 <input
                   type="url"
                   value={generateForm.url}
                   onChange={(e) => handleUrlChange(e.target.value)}
-                  className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-gray-900 focus:border-blue-500 focus:ring-2 focus:ring-blue-500 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-100 dark:placeholder-gray-400"
                   placeholder="https://www.falabella.com/..."
                   required
                 />
                 {detectedStore && (
-                  <p className="text-sm text-green-600 mt-1 flex items-center gap-1">
+                  <p className="mt-1 flex items-center gap-1 text-sm text-green-600 dark:text-green-400">
                     <svg
                       className="w-4 h-4"
                       fill="none"
@@ -322,7 +322,7 @@ export default function ProductsPage() {
               {/* Tienda y País */}
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                  <label className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-200">
                     Tienda <span className="text-red-500">*</span>
                   </label>
                   <select
@@ -333,7 +333,7 @@ export default function ProductsPage() {
                         store: e.target.value,
                       })
                     }
-                    className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-gray-900 focus:border-blue-500 focus:ring-2 focus:ring-blue-500 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-100"
                     required
                   >
                     <option value="falabella">Falabella</option>
@@ -344,7 +344,7 @@ export default function ProductsPage() {
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                  <label className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-200">
                     País <span className="text-red-500">*</span>
                   </label>
                   <select
@@ -355,7 +355,7 @@ export default function ProductsPage() {
                         country: e.target.value,
                       })
                     }
-                    className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-gray-900 focus:border-blue-500 focus:ring-2 focus:ring-blue-500 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-100"
                     required
                   >
                     <option value="cl">Chile</option>
@@ -369,13 +369,13 @@ export default function ProductsPage() {
 
               {/* Link de Afiliado (nuevo campo) */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+                <label className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-200">
                   Link de Afiliado
                 </label>
                 <div className="relative">
                   <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                     <svg
-                      className="w-5 h-5 text-gray-400"
+                      className="h-5 w-5 text-gray-400 dark:text-gray-500"
                       fill="none"
                       stroke="currentColor"
                       viewBox="0 0 24 24"
@@ -403,11 +403,11 @@ export default function ProductsPage() {
                         link_afiliados: e.target.value,
                       })
                     }
-                    className="w-full pl-10 pr-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    className="w-full rounded-lg border border-gray-300 bg-white py-2 pl-10 pr-4 text-gray-900 focus:border-blue-500 focus:ring-2 focus:ring-blue-500 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-100 dark:placeholder-gray-400"
                     placeholder="https://www.tienda.com/producto?afiliado=123"
                   />
                 </div>
-                <p className="text-xs text-gray-500 mt-1">
+                <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
                   Opcional: Link con tu código de afiliado para ganar comisiones
                 </p>
               </div>
@@ -424,9 +424,9 @@ export default function ProductsPage() {
                         generate_feed: e.target.checked,
                       })
                     }
-                    className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                    className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500 dark:border-gray-600 dark:bg-gray-800"
                   />
-                  <span className="text-sm text-gray-700">
+                  <span className="text-sm text-gray-700 dark:text-gray-200">
                     Generar Feed (1080x1350)
                   </span>
                 </label>
@@ -440,16 +440,16 @@ export default function ProductsPage() {
                         generate_story: e.target.checked,
                       })
                     }
-                    className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                    className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500 dark:border-gray-600 dark:bg-gray-800"
                   />
-                  <span className="text-sm text-gray-700">
+                  <span className="text-sm text-gray-700 dark:text-gray-200">
                     Generar Story (1080x1920)
                   </span>
                 </label>
               </div>
 
               {/* Botones de acción */}
-              <div className="flex gap-3 pt-6 border-t">
+              <div className="flex gap-3 border-t border-gray-200 pt-6 dark:border-gray-700">
                 <button
                   type="submit"
                   disabled={generating}
@@ -486,7 +486,7 @@ export default function ProductsPage() {
                 <button
                   type="button"
                   onClick={handleCancelGenerate}
-                  className="px-6 py-2.5 bg-gray-200 text-gray-800 rounded-lg hover:bg-gray-300"
+                  className="rounded-lg bg-gray-200 px-6 py-2.5 text-gray-800 hover:bg-gray-300 dark:bg-gray-700 dark:text-gray-100 dark:hover:bg-gray-600"
                 >
                   Cancelar
                 </button>

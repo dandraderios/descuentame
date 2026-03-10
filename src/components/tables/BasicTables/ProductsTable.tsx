@@ -322,7 +322,7 @@ export default function ProductsTable({
     <>
       <div className="space-y-4">
         {/* Filtros y buscador */}
-        <div className="bg-white p-4 rounded-lg shadow-sm flex gap-4 flex-wrap items-center">
+        <div className="flex flex-wrap items-center gap-4 rounded-lg bg-white p-4 shadow-sm dark:bg-gray-900">
           {/* Buscador */}
           <div className="flex-1 min-w-[300px] relative">
             <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
@@ -333,7 +333,7 @@ export default function ProductsTable({
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               placeholder="Buscar por nombre, ID, SKU o marca..."
-              className="w-full pl-10 pr-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              className="w-full rounded-lg border border-gray-300 bg-white py-2 pl-10 pr-4 text-gray-900 focus:border-blue-500 focus:ring-2 focus:ring-blue-500 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-100 dark:placeholder-gray-400"
             />
           </div>
 
@@ -342,7 +342,7 @@ export default function ProductsTable({
             onChange={(e) =>
               setFilters({ ...filters, status: e.target.value, skip: 0 })
             }
-            className="px-3 py-2 border rounded-lg min-w-[150px]"
+            className="min-w-[150px] rounded-lg border border-gray-300 bg-white px-3 py-2 text-gray-900 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-100"
           >
             <option value="">Todos los estados</option>
             <option value="draft">Borrador</option>
@@ -355,7 +355,7 @@ export default function ProductsTable({
             onChange={(e) =>
               setFilters({ ...filters, store: e.target.value, skip: 0 })
             }
-            className="px-3 py-2 border rounded-lg min-w-[150px]"
+            className="min-w-[150px] rounded-lg border border-gray-300 bg-white px-3 py-2 text-gray-900 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-100"
           >
             <option value="">Todas las tiendas</option>
             <option value="falabella">Falabella</option>
@@ -374,49 +374,49 @@ export default function ProductsTable({
             {loading ? "Actualizando..." : "Actualizar"}
           </button>
 
-          <span className="text-sm text-gray-600 self-center whitespace-nowrap">
+          <span className="self-center whitespace-nowrap text-sm text-gray-600 dark:text-gray-300">
             Total: {total} productos
             {debouncedSearchTerm && ` (mostrando ${products.length})`}
           </span>
         </div>
 
         {/* Tabla */}
-        <div className="bg-white rounded-lg shadow-sm overflow-hidden">
+        <div className="overflow-hidden rounded-lg bg-white shadow-sm dark:bg-gray-900">
           <div className="overflow-x-auto lg:overflow-x-visible">
-            <table className="w-full table-auto divide-y divide-gray-200">
-              <thead className="bg-gray-50">
+            <table className="w-full table-auto divide-y divide-gray-200 dark:divide-gray-800">
+              <thead className="bg-gray-50 dark:bg-gray-800/60">
                 <tr>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-gray-300">
                     Producto
                   </th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-gray-300">
                     Precios
                   </th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-gray-300">
                     Dcto
                   </th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-gray-300">
                     Estado
                   </th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-14">
+                  <th className="w-14 px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-gray-300">
                     Clicks
                   </th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-gray-300">
                     Creado
                   </th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-gray-300">
                     Acciones
                   </th>
                 </tr>
               </thead>
-              <tbody className="bg-white divide-y divide-gray-200">
+              <tbody className="divide-y divide-gray-200 bg-white dark:divide-gray-800 dark:bg-gray-900">
                 {products.map((product) => {
                   const cardPrice = getCardPriceInfo(product);
 
                   return (
                     <tr
                       key={product.product_id}
-                      className="hover:bg-gray-50 cursor-pointer"
+                      className="cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800/60"
                       onClick={() => handleViewDetail(product.product_id)}
                     >
                       <td className="px-4 py-4">
@@ -452,16 +452,16 @@ export default function ProductsTable({
                               fetchPriority="low"
                             />
                           ) : (
-                            <div className="w-10 h-10 bg-gray-200 rounded mr-3 flex items-center justify-center">
-                              <Image size={16} className="text-gray-400" />
+                            <div className="mr-3 flex h-10 w-10 items-center justify-center rounded bg-gray-200 dark:bg-gray-700">
+                              <Image size={16} className="text-gray-400 dark:text-gray-300" />
                             </div>
                           )}
                           <div>
-                            <div className="font-medium text-gray-900 max-w-xs truncate">
+                            <div className="max-w-xs truncate font-medium text-gray-900 dark:text-gray-100">
                               {product.product_name}
                             </div>
                             <div
-                              className="text-sm text-gray-500 flex items-center gap-2"
+                              className="flex items-center gap-2 text-sm text-gray-500 dark:text-gray-400"
                               onClick={(e) => e.stopPropagation()}
                             >
                               <span>ID: {product.product_id}</span>
@@ -469,7 +469,7 @@ export default function ProductsTable({
                                 onClick={() =>
                                   copyToClipboard(product.product_id, "ID")
                                 }
-                                className="text-gray-400 hover:text-blue-600"
+                                className="text-gray-400 hover:text-blue-600 dark:text-gray-500 dark:hover:text-blue-400"
                                 title="Copiar ID"
                               >
                                 <Copy size={14} />
@@ -491,7 +491,7 @@ export default function ProductsTable({
                           </div>
                         )}
                         {product.prices.old_price && (
-                          <div className="text-xs text-gray-500 line-through">
+                          <div className="text-xs text-gray-500 line-through dark:text-gray-400">
                             {product.prices.old_price}
                           </div>
                         )}
@@ -508,7 +508,7 @@ export default function ProductsTable({
                           {product.prices.discount}% OFF
                         </span>
                       ) : (
-                        <span className="text-gray-400">-</span>
+                        <span className="text-gray-400 dark:text-gray-500">-</span>
                       )}
                       {product.prices.coupon && (
                         <div className="text-xs text-purple-600 mt-1">
@@ -540,7 +540,7 @@ export default function ProductsTable({
                     </td>
                     <td className="px-4 py-4">
                       <div className="relative inline-flex group">
-                        <span className="inline-flex px-2 py-1 text-[10px] leading-tight bg-gray-100 text-gray-700 rounded-full whitespace-nowrap">
+                        <span className="inline-flex whitespace-nowrap rounded-full bg-gray-100 px-2 py-1 text-[10px] leading-tight text-gray-700 dark:bg-gray-700 dark:text-gray-200">
                           {formatShortDate(product.created_at)}
                         </span>
                         <div className="pointer-events-none absolute left-1/2 top-full z-20 mt-1 -translate-x-1/2 whitespace-nowrap rounded-md bg-gray-900 px-2 py-1 text-[10px] font-medium text-white opacity-0 shadow-lg transition-opacity duration-150 group-hover:opacity-100">
@@ -690,10 +690,10 @@ export default function ProductsTable({
 
                       {editingAffiliateProductId === product.product_id && (
                         <div
-                          className="absolute right-4 top-14 z-20 w-72 rounded-lg border border-gray-200 bg-white p-3 shadow-lg"
+                          className="absolute right-4 top-14 z-20 w-72 rounded-lg border border-gray-200 bg-white p-3 shadow-lg dark:border-gray-700 dark:bg-gray-900"
                           onClick={(e) => e.stopPropagation()}
                         >
-                          <p className="mb-2 text-xs font-medium text-gray-600">
+                          <p className="mb-2 text-xs font-medium text-gray-600 dark:text-gray-300">
                             Agregar link afiliado
                           </p>
                           <input
@@ -701,7 +701,7 @@ export default function ProductsTable({
                             value={affiliateLinkDraft}
                             onChange={(e) => setAffiliateLinkDraft(e.target.value)}
                             placeholder="https://..."
-                            className="w-full rounded border border-gray-300 px-2 py-1.5 text-sm focus:border-green-500 focus:outline-none"
+                            className="w-full rounded border border-gray-300 bg-white px-2 py-1.5 text-sm text-gray-900 focus:border-green-500 focus:outline-none dark:border-gray-700 dark:bg-gray-800 dark:text-gray-100"
                           />
                           <div className="mt-2 flex justify-end gap-2">
                             <button
@@ -709,7 +709,7 @@ export default function ProductsTable({
                                 setEditingAffiliateProductId(null);
                                 setAffiliateLinkDraft("");
                               }}
-                              className="inline-flex items-center gap-1 rounded bg-gray-100 px-2 py-1 text-xs text-gray-700 hover:bg-gray-200"
+                              className="inline-flex items-center gap-1 rounded bg-gray-100 px-2 py-1 text-xs text-gray-700 hover:bg-gray-200 dark:bg-gray-800 dark:text-gray-200 dark:hover:bg-gray-700"
                             >
                               <X size={12} />
                               Cancelar
@@ -733,10 +733,10 @@ export default function ProductsTable({
                       {/* Confirmación de eliminación */}
                       {showDeleteConfirm === product.product_id && (
                         <div
-                          className="absolute bg-white border rounded-lg shadow-lg p-4 mt-2 z-10"
+                          className="absolute z-10 mt-2 rounded-lg border bg-white p-4 shadow-lg dark:border-gray-700 dark:bg-gray-900"
                           onClick={(e) => e.stopPropagation()}
                         >
-                          <p className="text-sm mb-2">¿Eliminar producto?</p>
+                          <p className="mb-2 text-sm text-gray-900 dark:text-gray-100">¿Eliminar producto?</p>
                           <div className="flex gap-2">
                             <button
                               onClick={(e) => {
@@ -752,7 +752,7 @@ export default function ProductsTable({
                                 e.stopPropagation();
                                 setShowDeleteConfirm(null);
                               }}
-                              className="px-3 py-1 bg-gray-200 text-sm rounded hover:bg-gray-300"
+                              className="rounded bg-gray-200 px-3 py-1 text-sm hover:bg-gray-300 dark:bg-gray-700 dark:text-gray-100 dark:hover:bg-gray-600"
                             >
                               No
                             </button>
@@ -768,31 +768,31 @@ export default function ProductsTable({
           </div>
 
           {products.length === 0 && !loading && (
-            <div className="text-center py-12 text-gray-500">
+            <div className="py-12 text-center text-gray-500 dark:text-gray-400">
               No se encontraron productos
             </div>
           )}
 
           {total > 0 && (
-            <div className="border-t border-gray-200 px-4 py-3 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-              <div className="text-xs text-gray-600">
+            <div className="flex flex-col gap-3 border-t border-gray-200 px-4 py-3 dark:border-gray-800 sm:flex-row sm:items-center sm:justify-between">
+              <div className="text-xs text-gray-600 dark:text-gray-300">
                 Mostrando {showingFrom}-{showingTo} de {total}
               </div>
               <div className="flex items-center gap-2">
                 <button
                   onClick={() => handlePageChange(currentPage - 1)}
                   disabled={currentPage === 1}
-                  className="px-3 py-1.5 text-sm rounded-lg border border-gray-300 disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50"
+                  className="rounded-lg border border-gray-300 px-3 py-1.5 text-sm disabled:cursor-not-allowed disabled:opacity-50 hover:bg-gray-50 dark:border-gray-700 dark:text-gray-200 dark:hover:bg-gray-800"
                 >
                   Anterior
                 </button>
-                <span className="text-sm text-gray-700">
+                <span className="text-sm text-gray-700 dark:text-gray-200">
                   Página {currentPage} de {totalPages}
                 </span>
                 <button
                   onClick={() => handlePageChange(currentPage + 1)}
                   disabled={currentPage >= totalPages}
-                  className="px-3 py-1.5 text-sm rounded-lg border border-gray-300 disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50"
+                  className="rounded-lg border border-gray-300 px-3 py-1.5 text-sm disabled:cursor-not-allowed disabled:opacity-50 hover:bg-gray-50 dark:border-gray-700 dark:text-gray-200 dark:hover:bg-gray-800"
                 >
                   Siguiente
                 </button>

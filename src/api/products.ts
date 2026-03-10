@@ -3,6 +3,7 @@ import {
   ProductListResponse,
   ProductListRequest,
 } from "../types/product";
+import { getStoredAccessToken } from "../lib/authStorage";
 
 // Debug: ver qué variable de entorno está disponible
 console.log(
@@ -17,12 +18,19 @@ const CRAWL_API_BASE_URL =
 console.log("🔍 Final API_BASE_URL:", API_BASE_URL);
 console.log("🔍 Final CRAWL_API_BASE_URL:", CRAWL_API_BASE_URL);
 
-// Headers por defecto
-const headers = {
+const baseHeaders = {
   "Content-Type": "application/json",
   "Cache-Control": "no-cache, no-store, max-age=0",
   Pragma: "no-cache",
 };
+
+function getHeaders() {
+  const token = getStoredAccessToken();
+  return {
+    ...baseHeaders,
+    ...(token ? { Authorization: `Bearer ${token}` } : {}),
+  };
+}
 
 export interface CrawlStartResponse {
   status: string;
@@ -61,7 +69,7 @@ export async function getProducts(
 
   const response = await fetch(endpoint, {
     method: "POST",
-    headers,
+    headers: getHeaders(),
     cache: "no-store",
     body: JSON.stringify({
       limit: request.limit || 50,
@@ -69,7 +77,7 @@ export async function getProducts(
       status: request.status,
       store: request.store,
       search: request.search,
-      sort_by: request.sort_by || "updated_at",
+      sort_by: request.sort_by || "created_at",
       sort_order: request.sort_order || "desc",
     }),
   });
@@ -81,7 +89,7 @@ export async function getProducts(
 export async function getProduct(productId: string): Promise<Product> {
   const response = await fetch(`${API_BASE_URL}/api/v1/products/get`, {
     method: "POST",
-    headers,
+    headers: getHeaders(),
     cache: "no-store",
     body: JSON.stringify({ product_id: productId }),
   });
@@ -95,7 +103,7 @@ export async function deleteProduct(
 ): Promise<{ success: boolean }> {
   const response = await fetch(`${API_BASE_URL}/api/v1/products/delete`, {
     method: "POST",
-    headers,
+    headers: getHeaders(),
     cache: "no-store",
     body: JSON.stringify({ product_id: productId }),
   });
@@ -110,7 +118,7 @@ export async function publishProduct(
 ): Promise<Product> {
   const response = await fetch(`${API_BASE_URL}/api/v1/products/publish`, {
     method: "POST",
-    headers,
+    headers: getHeaders(),
     cache: "no-store",
     body: JSON.stringify({ product_id: productId, action }),
   });
@@ -125,7 +133,7 @@ export async function updateProduct(
 ): Promise<Product> {
   const response = await fetch(`${API_BASE_URL}/api/v1/products/update`, {
     method: "POST",
-    headers,
+    headers: getHeaders(),
     cache: "no-store",
     body: JSON.stringify({ product_id: productId, ...payload }),
   });
@@ -139,7 +147,7 @@ export async function detectStore(
 ): Promise<{ detected_store: string }> {
   const response = await fetch(`${API_BASE_URL}/api/v1/detect-store`, {
     method: "POST",
-    headers,
+    headers: getHeaders(),
     cache: "no-store",
     body: JSON.stringify({ url }),
   });
@@ -161,7 +169,7 @@ export async function generateProduct(request: {
 
   const response = await fetch(endpoint, {
     method: "POST",
-    headers,
+    headers: getHeaders(),
     cache: "no-store",
     signal: options?.signal,
     body: JSON.stringify({

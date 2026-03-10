@@ -132,7 +132,7 @@ export default function LinksPage() {
         status: "published",
         limit: PAGE_SIZE,
         skip,
-        sort_by: "updated_at",
+        sort_by: "created_at",
         sort_order: "desc",
       });
       const nextProducts = reset

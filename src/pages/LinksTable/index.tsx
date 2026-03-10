@@ -202,7 +202,7 @@ export default function LinksTablePage() {
         skip: reset ? 0 : productsRef.current.length,
         store: storeFilter || undefined,
         search: debouncedSearch || undefined,
-        sort_by: "updated_at",
+        sort_by: "created_at",
         sort_order: "desc",
       });
       const nextProducts = reset
