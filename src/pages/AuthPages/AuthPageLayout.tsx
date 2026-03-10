@@ -26,7 +26,7 @@ export default function AuthLayout({
                 />
               </Link>
               <p className="text-center text-gray-400 dark:text-white/60">
-                Descuenta.me - Descuentos y Ofertas Chile
+                Descuentos y ofertas Chile
               </p>
             </div>
           </div>
