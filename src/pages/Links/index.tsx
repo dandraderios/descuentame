@@ -59,7 +59,10 @@ const LazyProductImage = ({
   }, [shouldLoad, src]);
 
   return (
-    <div ref={containerRef} className="relative aspect-square w-full overflow-hidden">
+    <div
+      ref={containerRef}
+      className="relative aspect-square w-full overflow-hidden"
+    >
       {src && shouldLoad && (
         <img
           src={src}
@@ -242,7 +245,7 @@ export default function LinksPage() {
             <div className="flex flex-wrap items-center justify-between gap-3">
               <div className="flex items-center gap-3">
                 <img
-                  src="/images/logo/descuentame-logo-light.png"
+                  src="/images/logo/descuentame-logo-dark.png"
                   alt="Descuenta.me"
                   className="h-8 w-auto sm:h-9"
                 />
@@ -256,7 +259,10 @@ export default function LinksPage() {
                   disabled={refreshing}
                   className="inline-flex items-center gap-1 rounded-full border border-white/40 bg-white/10 px-3 py-1.5 text-sm font-semibold text-white hover:bg-white/20 disabled:opacity-60 disabled:cursor-not-allowed"
                 >
-                  <RefreshCw size={14} className={refreshing ? "animate-spin" : ""} />
+                  <RefreshCw
+                    size={14}
+                    className={refreshing ? "animate-spin" : ""}
+                  />
                   {refreshing ? "Actualizando..." : "Actualizar"}
                 </button>
               </div>
@@ -303,7 +309,10 @@ export default function LinksPage() {
                       rel="noopener noreferrer"
                       className="block border-b border-gray-100"
                     >
-                      <LazyProductImage src={image} alt={product.product_name} />
+                      <LazyProductImage
+                        src={image}
+                        alt={product.product_name}
+                      />
                     </a>
 
                     <div className="space-y-2 p-3">

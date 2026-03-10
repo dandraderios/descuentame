@@ -125,9 +125,7 @@ const LazyProductImage = ({
           onError={() => setLoaded(true)}
         />
       )}
-      {!loaded && (
-        <div className={`${placeholderClassName} animate-pulse`} />
-      )}
+      {!loaded && <div className={`${placeholderClassName} animate-pulse`} />}
     </div>
   );
 };
@@ -183,48 +181,53 @@ export default function LinksTablePage() {
     totalRef.current = total;
   }, [total]);
 
-  const loadPublishedProducts = useCallback(async (reset = false) => {
-    if (inFlightRef.current) return;
-    if (!reset && productsRef.current.length >= totalRef.current) return;
+  const loadPublishedProducts = useCallback(
+    async (reset = false) => {
+      if (inFlightRef.current) return;
+      if (!reset && productsRef.current.length >= totalRef.current) return;
 
-    inFlightRef.current = true;
-    if (reset) {
-      setLoading(true);
-      setError(null);
-    } else {
-      setLoadingMore(true);
-    }
-
-    try {
-      const response = await getProducts({
-        status: "published",
-        limit: PAGE_SIZE,
-        skip: reset ? 0 : productsRef.current.length,
-        store: storeFilter || undefined,
-        search: debouncedSearch || undefined,
-        sort_by: "created_at",
-        sort_order: "desc",
-      });
-      const nextProducts = reset
-        ? response.products
-        : [...productsRef.current, ...response.products];
-      productsRef.current = nextProducts;
-      totalRef.current = response.total;
-      setProducts(nextProducts);
-      setTotal(response.total);
-    } catch (err) {
-      setError(
-        err instanceof Error ? err.message : "No se pudieron cargar productos",
-      );
-    } finally {
-      inFlightRef.current = false;
+      inFlightRef.current = true;
       if (reset) {
-        setLoading(false);
+        setLoading(true);
+        setError(null);
       } else {
-        setLoadingMore(false);
+        setLoadingMore(true);
       }
-    }
-  }, [debouncedSearch, storeFilter]);
+
+      try {
+        const response = await getProducts({
+          status: "published",
+          limit: PAGE_SIZE,
+          skip: reset ? 0 : productsRef.current.length,
+          store: storeFilter || undefined,
+          search: debouncedSearch || undefined,
+          sort_by: "created_at",
+          sort_order: "desc",
+        });
+        const nextProducts = reset
+          ? response.products
+          : [...productsRef.current, ...response.products];
+        productsRef.current = nextProducts;
+        totalRef.current = response.total;
+        setProducts(nextProducts);
+        setTotal(response.total);
+      } catch (err) {
+        setError(
+          err instanceof Error
+            ? err.message
+            : "No se pudieron cargar productos",
+        );
+      } finally {
+        inFlightRef.current = false;
+        if (reset) {
+          setLoading(false);
+        } else {
+          setLoadingMore(false);
+        }
+      }
+    },
+    [debouncedSearch, storeFilter],
+  );
 
   useEffect(() => {
     loadPublishedProducts(true);
@@ -335,7 +338,7 @@ export default function LinksTablePage() {
             <div className="flex flex-wrap items-center justify-between gap-3">
               <div className="flex items-center gap-3">
                 <img
-                  src="/images/logo/descuentame-logo-light.png"
+                  src="/images/logo/descuentame-logo-dark.png"
                   alt="Descuenta.me"
                   className="h-8 w-auto sm:h-9"
                 />
@@ -368,7 +371,10 @@ export default function LinksTablePage() {
                   disabled={refreshing}
                   className="inline-flex items-center gap-1 rounded-full border border-white/40 bg-white/10 px-3 py-1.5 text-sm font-semibold text-white hover:bg-white/20 disabled:opacity-60 disabled:cursor-not-allowed"
                 >
-                  <RefreshCw size={14} className={refreshing ? "animate-spin" : ""} />
+                  <RefreshCw
+                    size={14}
+                    className={refreshing ? "animate-spin" : ""}
+                  />
                   {refreshing ? "Actualizando..." : "Actualizar"}
                 </button>
               </div>
@@ -491,14 +497,16 @@ export default function LinksTablePage() {
                                     {toDisplayText(product.prices.old_price) !==
                                       "-" && (
                                       <span className="rounded-full bg-gray-100 px-3 py-1 text-sm text-gray-500 line-through">
-                                        {toDisplayText(product.prices.old_price)}
+                                        {toDisplayText(
+                                          product.prices.old_price,
+                                        )}
                                       </span>
                                     )}
                                     {toDisplayText(product.prices.discount) !==
                                       "-" && (
                                       <span className="rounded-full bg-success-100 px-3 py-1 text-sm font-medium text-success-700">
-                                        {toDisplayText(product.prices.discount)}%
-                                        OFF
+                                        {toDisplayText(product.prices.discount)}
+                                        % OFF
                                       </span>
                                     )}
                                     {toDisplayText(product.prices.coupon) !==
@@ -525,14 +533,16 @@ export default function LinksTablePage() {
                                     {toDisplayText(product.prices.old_price) !==
                                       "-" && (
                                       <span className="rounded-full bg-gray-100 px-2 py-0.5 text-[11px] text-gray-500 line-through">
-                                        {toDisplayText(product.prices.old_price)}
+                                        {toDisplayText(
+                                          product.prices.old_price,
+                                        )}
                                       </span>
                                     )}
                                     {toDisplayText(product.prices.discount) !==
                                       "-" && (
                                       <span className="rounded-full bg-success-100 px-2 py-0.5 text-[11px] font-medium text-success-700">
-                                        {toDisplayText(product.prices.discount)}%
-                                        OFF
+                                        {toDisplayText(product.prices.discount)}
+                                        % OFF
                                       </span>
                                     )}
                                     {toDisplayText(product.prices.coupon) !==
@@ -570,7 +580,10 @@ export default function LinksTablePage() {
             </div>
 
             {!loading && (
-              <div ref={loadMoreRef} className="border-t border-gray-100 px-4 py-4 text-center">
+              <div
+                ref={loadMoreRef}
+                className="border-t border-gray-100 px-4 py-4 text-center"
+              >
                 {loadingMore ? (
                   <div className="inline-flex items-center gap-2 text-sm text-gray-600">
                     <RefreshCw size={16} className="animate-spin" />
