@@ -15,6 +15,13 @@ const API_BASE_URL =
   import.meta.env.VITE_API_BASE_URL || "http://localhost:8001";
 const CRAWL_API_BASE_URL =
   import.meta.env.VITE_CRAWL_API_BASE_URL || "http://localhost:8002";
+const rawCrawlTimeoutMs = Number(
+  import.meta.env.VITE_CRAWL_API_TIMEOUT_MS || 4500,
+);
+const CRAWL_API_TIMEOUT_MS =
+  Number.isFinite(rawCrawlTimeoutMs) && rawCrawlTimeoutMs > 0
+    ? rawCrawlTimeoutMs
+    : 4500;
 console.log("🔍 Final API_BASE_URL:", API_BASE_URL);
 console.log("🔍 Final CRAWL_API_BASE_URL:", CRAWL_API_BASE_URL);
 
@@ -40,6 +47,7 @@ export interface CrawlStartResponse {
   generate_feed: boolean;
   generate_story: boolean;
   link_afiliados: string | null;
+  fallback_provider?: "hyperbrowser" | "scrape_do";
   product_id: string;
 }
 
@@ -58,6 +66,56 @@ async function handleResponse<T>(response: Response): Promise<T> {
     return (data as { data: T }).data;
   }
   return data as T;
+}
+
+function shouldFallbackToDirectGenerate(error: unknown): boolean {
+  if (error instanceof DOMException && error.name === "AbortError") {
+    return true;
+  }
+  if (error instanceof TypeError) {
+    return true;
+  }
+  if (!(error instanceof Error)) {
+    return false;
+  }
+  const message = error.message.toLowerCase();
+  return (
+    message.includes("failed to fetch") ||
+    message.includes("networkerror") ||
+    message.includes("econnrefused") ||
+    message.includes("fetch")
+  );
+}
+
+async function fetchWithTimeout(
+  input: RequestInfo | URL,
+  init: RequestInit,
+  timeoutMs: number,
+  externalSignal?: AbortSignal,
+): Promise<Response> {
+  const controller = new AbortController();
+  const timer = window.setTimeout(() => controller.abort(), timeoutMs);
+
+  const onAbort = () => controller.abort();
+  if (externalSignal) {
+    if (externalSignal.aborted) {
+      controller.abort();
+    } else {
+      externalSignal.addEventListener("abort", onAbort);
+    }
+  }
+
+  try {
+    return await fetch(input, {
+      ...init,
+      signal: controller.signal,
+    });
+  } finally {
+    window.clearTimeout(timer);
+    if (externalSignal) {
+      externalSignal.removeEventListener("abort", onAbort);
+    }
+  }
 }
 
 // Obtener lista de productos
@@ -163,24 +221,49 @@ export async function generateProduct(request: {
   generate_feed?: boolean;
   generate_story?: boolean;
   link_afiliados?: string;
+  fallback_provider?: "hyperbrowser" | "scrape_do";
 }, options?: { signal?: AbortSignal }): Promise<CrawlStartResponse> {
-  const endpoint = `${CRAWL_API_BASE_URL}/crawl`;
-  console.log("📡 Generando producto en:", endpoint);
+  const payload = {
+    url: request.url,
+    store: request.store,
+    country: request.country || "cl",
+    generate_feed: request.generate_feed ?? true,
+    generate_story: request.generate_story ?? true,
+    link_afiliados: request.link_afiliados,
+    fallback_provider: request.fallback_provider || "hyperbrowser",
+  };
+  const crawlEndpoint = `${CRAWL_API_BASE_URL}/crawl`;
+  console.log("📡 Generando producto vía crawler:", crawlEndpoint);
 
-  const response = await fetch(endpoint, {
-    method: "POST",
-    headers: getHeaders(),
-    cache: "no-store",
-    signal: options?.signal,
-    body: JSON.stringify({
-      url: request.url,
-      store: request.store,
-      country: request.country || "cl",
-      generate_feed: request.generate_feed ?? true,
-      generate_story: request.generate_story ?? true,
-      link_afiliados: request.link_afiliados,
-    }),
-  });
-
-  return handleResponse<CrawlStartResponse>(response);
+  try {
+    const crawlResponse = await fetchWithTimeout(
+      crawlEndpoint,
+      {
+        method: "POST",
+        headers: getHeaders(),
+        cache: "no-store",
+        body: JSON.stringify(payload),
+      },
+      CRAWL_API_TIMEOUT_MS,
+      options?.signal,
+    );
+    return await handleResponse<CrawlStartResponse>(crawlResponse);
+  } catch (error) {
+    if (!shouldFallbackToDirectGenerate(error)) {
+      throw error;
+    }
+    const directEndpoint = `${API_BASE_URL}/api/v1/generate`;
+    console.warn(
+      "⚠️ Crawler no disponible. Fallback a backend directo:",
+      directEndpoint,
+    );
+    const directResponse = await fetch(directEndpoint, {
+      method: "POST",
+      headers: getHeaders(),
+      cache: "no-store",
+      signal: options?.signal,
+      body: JSON.stringify(payload),
+    });
+    return handleResponse<CrawlStartResponse>(directResponse);
+  }
 }

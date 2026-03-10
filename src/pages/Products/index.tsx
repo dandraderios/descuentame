@@ -22,6 +22,7 @@ export default function ProductsPage() {
     generate_feed: true,
     generate_story: true,
     link_afiliados: "", // ← Nuevo campo
+    fallback_provider: "hyperbrowser" as "hyperbrowser" | "scrape_do",
   });
   const [detectedStore, setDetectedStore] = useState<string | null>(null);
   const generateAbortControllerRef = useRef<AbortController | null>(null);
@@ -40,6 +41,7 @@ export default function ProductsPage() {
       generate_feed: true,
       generate_story: true,
       link_afiliados: "",
+      fallback_provider: "hyperbrowser",
     });
     setDetectedStore(null);
   };
@@ -188,9 +190,28 @@ export default function ProductsPage() {
         generate_feed: generateForm.generate_feed,
         generate_story: generateForm.generate_story,
         link_afiliados: generateForm.link_afiliados || undefined, // ← Enviar link
+        fallback_provider: generateForm.fallback_provider,
       }, { signal: controller.signal });
 
       if (isGenerationCancelledRef.current) return;
+
+      // Flujo síncrono (/api/v1/generate): si ya llega el producto persistido,
+      // evitamos polling adicional que deja el botón en "Generando..." demasiado tiempo.
+      const completedProduct = result as CrawlStartResponse & Partial<Product>;
+      if (
+        completedProduct.product_id &&
+        completedProduct.product_name &&
+        completedProduct.updated_at
+      ) {
+        resetGeneratorForm();
+        toast.success(
+          `Producto generado exitosamente: ${completedProduct.product_name}`,
+          { duration: 2500 },
+        );
+        await sleep(1200);
+        window.location.reload();
+        return;
+      }
 
       let savedProduct: Product | null = null;
       let wasExistingProduct = false;
@@ -446,6 +467,49 @@ export default function ProductsPage() {
                     Generar Story (1080x1920)
                   </span>
                 </label>
+              </div>
+
+              {/* Fallback provider */}
+              <div className="rounded-lg border border-gray-200 bg-gray-50 p-4 dark:border-gray-700 dark:bg-gray-800/40">
+                <p className="mb-3 text-sm font-semibold text-gray-800 dark:text-gray-100">
+                  Fallback
+                </p>
+                <div className="flex flex-wrap gap-4">
+                  <label className="flex cursor-pointer items-center gap-2 rounded-md border border-gray-300 bg-white px-3 py-2 dark:border-gray-600 dark:bg-gray-800">
+                    <input
+                      type="checkbox"
+                      checked={generateForm.fallback_provider === "scrape_do"}
+                      onChange={() =>
+                        setGenerateForm({
+                          ...generateForm,
+                          fallback_provider: "scrape_do",
+                        })
+                      }
+                      className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500 dark:border-gray-600 dark:bg-gray-800"
+                    />
+                    <span className="text-sm text-gray-700 dark:text-gray-200">
+                      Scrape.do
+                    </span>
+                  </label>
+                  <label className="flex cursor-pointer items-center gap-2 rounded-md border border-gray-300 bg-white px-3 py-2 dark:border-gray-600 dark:bg-gray-800">
+                    <input
+                      type="checkbox"
+                      checked={
+                        generateForm.fallback_provider === "hyperbrowser"
+                      }
+                      onChange={() =>
+                        setGenerateForm({
+                          ...generateForm,
+                          fallback_provider: "hyperbrowser",
+                        })
+                      }
+                      className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500 dark:border-gray-600 dark:bg-gray-800"
+                    />
+                    <span className="text-sm text-gray-700 dark:text-gray-200">
+                      HyperBrowser
+                    </span>
+                  </label>
+                </div>
               </div>
 
               {/* Botones de acción */}

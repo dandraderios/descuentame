@@ -6,6 +6,7 @@ import {
   ChevronUp,
   RefreshCw,
   ChevronsDown,
+  Clock3,
 } from "lucide-react";
 import PageMeta from "../../components/common/PageMeta";
 import { getProducts } from "../../api/products";
@@ -79,6 +80,56 @@ const getProductImage = (product: Product) =>
   product.story_image_url ||
   null;
 
+const parsePublishedTimestamp = (value: string, nowMs: number) => {
+  const raw = String(value || "").trim();
+  if (!raw) return null;
+
+  const localMs = Date.parse(raw);
+  const hasTimezone = /([zZ]|[+\-]\d{2}:\d{2})$/.test(raw);
+  if (hasTimezone) {
+    return Number.isFinite(localMs) ? localMs : null;
+  }
+
+  const normalized = raw.includes("T") ? raw : raw.replace(" ", "T");
+  const utcMs = Date.parse(`${normalized}Z`);
+  if (!Number.isFinite(localMs) && !Number.isFinite(utcMs)) return null;
+  if (!Number.isFinite(localMs)) return utcMs;
+  if (!Number.isFinite(utcMs)) return localMs;
+
+  if (localMs > nowMs + 10 * 60 * 1000 && utcMs <= nowMs + 10 * 60 * 1000) {
+    return utcMs;
+  }
+
+  return localMs;
+};
+
+const getPublishedHoursAgo = (product: Product, nowMs: number) => {
+  const publishedAt = (product as Product & { published_at?: string | null })
+    .published_at;
+  const baseDate = publishedAt || product.created_at;
+  const publishedMs = parsePublishedTimestamp(baseDate, nowMs);
+  if (!Number.isFinite(publishedMs)) return null;
+
+  const diffMs = Math.max(0, nowMs - publishedMs);
+  const minutes = Math.max(1, Math.floor(diffMs / (1000 * 60)));
+  if (minutes < 60)
+    return `hace ${minutes} ${minutes === 1 ? "minuto" : "minutos"}`;
+
+  const hours = Math.floor(minutes / 60);
+  if (hours < 24) return `hace ${hours} h`;
+
+  const roundedDays = Math.max(1, Math.round(hours / 24));
+  if (roundedDays < 30)
+    return `hace ${roundedDays} ${roundedDays === 1 ? "día" : "días"}`;
+
+  const roundedMonths = Math.max(1, Math.round(roundedDays / 30));
+  if (roundedMonths < 12)
+    return `hace ${roundedMonths} ${roundedMonths === 1 ? "mes" : "meses"}`;
+
+  const roundedYears = Math.max(1, Math.round(roundedMonths / 12));
+  return `hace ${roundedYears} ${roundedYears === 1 ? "año" : "años"}`;
+};
+
 const LazyProductImage = ({
   src,
   alt,
@@ -151,6 +202,7 @@ export default function LinksTablePage() {
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [total, setTotal] = useState(0);
+  const [nowMs, setNowMs] = useState(() => Date.now());
   const loadMoreRef = useRef<HTMLDivElement | null>(null);
   const productsRef = useRef<Product[]>([]);
   const totalRef = useRef(0);
@@ -165,6 +217,13 @@ export default function LinksTablePage() {
   const [cardFilter, setCardFilter] = useState<BooleanFilter>("all");
   const [mobileFiltersOpen, setMobileFiltersOpen] = useState(false);
   const hasMore = products.length < total;
+
+  useEffect(() => {
+    const intervalId = window.setInterval(() => {
+      setNowMs(Date.now());
+    }, 30000);
+    return () => window.clearInterval(intervalId);
+  }, []);
 
   useEffect(() => {
     const timeoutId = window.setTimeout(() => {
@@ -469,6 +528,10 @@ export default function LinksTablePage() {
                       const image = getProductImage(product);
                       const cardPrice = getCardPriceInfo(product);
                       const productLink = getProductLink(product);
+                      const publishedHoursAgo = getPublishedHoursAgo(
+                        product,
+                        nowMs,
+                      );
 
                       return (
                         <tr
@@ -521,6 +584,12 @@ export default function LinksTablePage() {
                                         {cardPrice.label}: {cardPrice.value}
                                       </span>
                                     )}
+                                    {publishedHoursAgo && (
+                                      <span className="inline-flex items-center gap-1 rounded-full bg-gray-100 px-3 py-1 text-sm font-medium text-gray-700">
+                                        <Clock3 size={14} />
+                                        {publishedHoursAgo}
+                                      </span>
+                                    )}
                                   </div>
                                 </div>
                                 <div className="mt-1 flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
@@ -555,6 +624,12 @@ export default function LinksTablePage() {
                                     {cardPrice && (
                                       <span className="rounded-full bg-brand-100 px-2 py-0.5 text-[11px] font-medium text-brand-700">
                                         {cardPrice.label}: {cardPrice.value}
+                                      </span>
+                                    )}
+                                    {publishedHoursAgo && (
+                                      <span className="inline-flex items-center gap-1 rounded-full bg-gray-100 px-2 py-0.5 text-[11px] font-medium text-gray-700">
+                                        <Clock3 size={12} />
+                                        {publishedHoursAgo}
                                       </span>
                                     )}
                                   </div>
@@ -609,6 +684,16 @@ export default function LinksTablePage() {
             )}
           </div>
         </section>
+        <footer className="px-1 pb-2 pt-4 text-center text-[11px] leading-relaxed text-gray-400 sm:text-xs">
+          <p>
+            Los precios, imágenes y demás información mostrada son solo de
+            referencia. Todas las marcas, logotipos e imágenes pertenecen a sus
+            respectivos propietarios.
+          </p>
+          <p className="mt-1">
+            © {new Date().getFullYear()} - descuenta.me
+          </p>
+        </footer>
       </main>
     </>
   );

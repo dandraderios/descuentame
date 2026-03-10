@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { RefreshCw, ChevronsDown } from "lucide-react";
+import { RefreshCw, ChevronsDown, Clock3 } from "lucide-react";
 import PageMeta from "../../components/common/PageMeta";
 import { getProducts } from "../../api/products";
 import type { Product } from "../../types/product";
@@ -29,6 +29,57 @@ const getProductImage = (product: Product) =>
   product.feed_image_url ||
   product.story_image_url ||
   null;
+
+const parsePublishedTimestamp = (value: string, nowMs: number) => {
+  const raw = String(value || "").trim();
+  if (!raw) return null;
+
+  const localMs = Date.parse(raw);
+  const hasTimezone = /([zZ]|[+\-]\d{2}:\d{2})$/.test(raw);
+  if (hasTimezone) {
+    return Number.isFinite(localMs) ? localMs : null;
+  }
+
+  const normalized = raw.includes("T") ? raw : raw.replace(" ", "T");
+  const utcMs = Date.parse(`${normalized}Z`);
+  if (!Number.isFinite(localMs) && !Number.isFinite(utcMs)) return null;
+  if (!Number.isFinite(localMs)) return utcMs;
+  if (!Number.isFinite(utcMs)) return localMs;
+
+  // Si sin timezone se interpreta en futuro, priorizamos UTC.
+  if (localMs > nowMs + 10 * 60 * 1000 && utcMs <= nowMs + 10 * 60 * 1000) {
+    return utcMs;
+  }
+
+  return localMs;
+};
+
+const getPublishedHoursAgo = (product: Product, nowMs: number) => {
+  const publishedAt = (product as Product & { published_at?: string | null })
+    .published_at;
+  const baseDate = publishedAt || product.created_at;
+  const publishedMs = parsePublishedTimestamp(baseDate, nowMs);
+  if (!Number.isFinite(publishedMs)) return null;
+
+  const diffMs = Math.max(0, nowMs - publishedMs);
+  const minutes = Math.max(1, Math.floor(diffMs / (1000 * 60)));
+  if (minutes < 60)
+    return `hace ${minutes} ${minutes === 1 ? "minuto" : "minutos"}`;
+
+  const hours = Math.floor(minutes / 60);
+  if (hours < 24) return `hace ${hours} h`;
+
+  const roundedDays = Math.max(1, Math.round(hours / 24));
+  if (roundedDays < 30)
+    return `hace ${roundedDays} ${roundedDays === 1 ? "día" : "días"}`;
+
+  const roundedMonths = Math.max(1, Math.round(roundedDays / 30));
+  if (roundedMonths < 12)
+    return `hace ${roundedMonths} ${roundedMonths === 1 ? "mes" : "meses"}`;
+
+  const roundedYears = Math.max(1, Math.round(roundedMonths / 12));
+  return `hace ${roundedYears} ${roundedYears === 1 ? "año" : "años"}`;
+};
 
 const LazyProductImage = ({
   src,
@@ -101,6 +152,7 @@ export default function LinksPage() {
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [total, setTotal] = useState(0);
+  const [nowMs, setNowMs] = useState(() => Date.now());
   const loadMoreRef = useRef<HTMLDivElement | null>(null);
   const productsRef = useRef<Product[]>([]);
   const totalRef = useRef(0);
@@ -108,6 +160,13 @@ export default function LinksPage() {
   const tickingRef = useRef(false);
 
   const hasMore = products.length < total;
+
+  useEffect(() => {
+    const intervalId = window.setInterval(() => {
+      setNowMs(Date.now());
+    }, 30000);
+    return () => window.clearInterval(intervalId);
+  }, []);
 
   useEffect(() => {
     productsRef.current = products;
@@ -297,6 +356,7 @@ export default function LinksPage() {
                 const image = getProductImage(product);
                 const cardPrice = getCardPriceInfo(product);
                 const productLink = getProductLink(product);
+                const publishedHoursAgo = getPublishedHoursAgo(product, nowMs);
 
                 return (
                   <article
@@ -307,8 +367,14 @@ export default function LinksPage() {
                       href={productLink}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="block border-b border-gray-100"
+                      className="relative block border-b border-gray-100"
                     >
+                      {publishedHoursAgo && (
+                        <span className="absolute right-2 top-2 z-10 inline-flex items-center gap-1 rounded-full bg-black/75 px-2 py-1 text-[10px] font-semibold text-white backdrop-blur-sm">
+                          <Clock3 size={11} />
+                          {publishedHoursAgo}
+                        </span>
+                      )}
                       <LazyProductImage
                         src={image}
                         alt={product.product_name}
@@ -377,6 +443,13 @@ export default function LinksPage() {
             </div>
           )}
         </section>
+        <footer className="px-1 pb-2 pt-4 text-center text-[11px] leading-relaxed text-gray-400 sm:text-xs">
+          <p>
+            Precios e imágenes son referenciales. Logos y marcas pertenecen a
+            sus respectivos titulares. Uso únicamente ilustrativo.
+          </p>
+          <p className="mt-1">© {new Date().getFullYear()} - descuenta.me</p>
+        </footer>
       </main>
     </>
   );
