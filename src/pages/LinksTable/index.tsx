@@ -108,7 +108,7 @@ const getPublishedHoursAgo = (product: Product, nowMs: number) => {
     .published_at;
   const baseDate = publishedAt || product.created_at;
   const publishedMs = parsePublishedTimestamp(baseDate, nowMs);
-  if (!Number.isFinite(publishedMs)) return null;
+  if (publishedMs === null || !Number.isFinite(publishedMs)) return null;
 
   const diffMs = Math.max(0, nowMs - publishedMs);
   const minutes = Math.max(1, Math.floor(diffMs / (1000 * 60)));
