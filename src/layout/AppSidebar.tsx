@@ -29,7 +29,7 @@ const navItems: NavItem[] = [
   {
     icon: <GridIcon />,
     name: "Dashboard",
-    subItems: [{ name: "Ecommerce", path: "/", pro: false }],
+    subItems: [{ name: "Productos", path: "/products", pro: false }],
   },
   {
     icon: <CalenderIcon />,
@@ -52,10 +52,11 @@ const navItems: NavItem[] = [
     subItems: [{ name: "Basic Tables", path: "/basic-tables", pro: false }],
   },
   {
-    name: "Pages",
+    name: "Páginas públicas",
     icon: <PageIcon />,
     subItems: [
-      { name: "Blank Page", path: "/blank", pro: false },
+      { name: "Links Instagram", path: "/links", pro: false },
+      { name: "Lista productos", path: "/", pro: false },
       { name: "404 Error", path: "/error-404", pro: false },
     ],
   },
