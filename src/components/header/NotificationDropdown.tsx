@@ -5,6 +5,7 @@ import { DropdownItem } from "../ui/dropdown/DropdownItem";
 import { useAuth } from "../../context/AuthContext";
 import {
   listNotifications,
+  markAllNotificationsAsRead,
   markNotificationAsRead,
   type NotificationItem,
 } from "../../api/notifications";
@@ -36,6 +37,7 @@ export default function NotificationDropdown() {
 
   const [isOpen, setIsOpen] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [markingAll, setMarkingAll] = useState(false);
   const [items, setItems] = useState<NotificationItem[]>([]);
   const [error, setError] = useState<string>("");
 
@@ -70,22 +72,28 @@ export default function NotificationDropdown() {
       const delay =
         document.visibilityState === "visible" ? POLL_VISIBLE_MS : POLL_HIDDEN_MS;
       intervalId = window.setInterval(() => {
-        void loadNotifications();
+        if (!isOpen) {
+          void loadNotifications();
+        }
       }, delay);
     };
 
     const onVisibilityChange = () => {
-      if (document.visibilityState === "visible") {
+      if (document.visibilityState === "visible" && !isOpen) {
         void loadNotifications();
       }
       schedulePolling();
     };
 
     const onWindowFocus = () => {
-      void loadNotifications();
+      if (!isOpen) {
+        void loadNotifications();
+      }
     };
 
-    void loadNotifications();
+    if (!isOpen) {
+      void loadNotifications();
+    }
     schedulePolling();
     document.addEventListener("visibilitychange", onVisibilityChange);
     window.addEventListener("focus", onWindowFocus);
@@ -97,7 +105,7 @@ export default function NotificationDropdown() {
       document.removeEventListener("visibilitychange", onVisibilityChange);
       window.removeEventListener("focus", onWindowFocus);
     };
-  }, [isAdmin]);
+  }, [isAdmin, isOpen]);
 
   if (!isAdmin) {
     return null;
@@ -126,6 +134,19 @@ export default function NotificationDropdown() {
       );
     } catch {
       // Mantener UI estable si falla mark-as-read.
+    }
+  };
+
+  const handleMarkAllAsRead = async () => {
+    if (markingAll || unreadCount === 0) return;
+    setMarkingAll(true);
+    try {
+      await markAllNotificationsAsRead(true);
+      setItems((prev) => prev.map((item) => ({ ...item, is_read: true })));
+    } catch {
+      // Mantener UI estable si falla mark-all-as-read.
+    } finally {
+      setMarkingAll(false);
     }
   };
 
@@ -180,6 +201,16 @@ export default function NotificationDropdown() {
               </svg>
             </button>
           </div>
+        </div>
+
+        <div className="mb-3 flex items-center justify-end">
+          <button
+            onClick={handleMarkAllAsRead}
+            disabled={markingAll || unreadCount === 0}
+            className="rounded-md border border-gray-200 px-3 py-1.5 text-xs font-medium text-gray-700 transition hover:bg-gray-100 disabled:cursor-not-allowed disabled:opacity-50 dark:border-gray-700 dark:text-gray-200 dark:hover:bg-white/5"
+          >
+            {markingAll ? "Marcando..." : "Marcar todas como leídas"}
+          </button>
         </div>
 
         <ul className="flex flex-col h-auto overflow-y-auto custom-scrollbar">

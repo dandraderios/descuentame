@@ -92,6 +92,19 @@ export async function markNotificationAsRead(
   return handleResponse<{ notification_id: string }>(response);
 }
 
+export async function markAllNotificationsAsRead(
+  unreadOnly = true,
+): Promise<{ modified_count: number }> {
+  const response = await fetch(`${API_BASE_URL}/api/v1/notifications/read-all`, {
+    method: "POST",
+    headers: getHeaders(),
+    cache: "no-store",
+    body: JSON.stringify({ unread_only: unreadOnly }),
+  });
+
+  return handleResponse<{ modified_count: number }>(response);
+}
+
 export async function getUnreadNotificationsCount(): Promise<{
   unread_count: number;
 }> {
