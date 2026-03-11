@@ -74,7 +74,6 @@ export default function SignInForm() {
   const [loadingGoogle, setLoadingGoogle] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const googleButtonRef = useRef<HTMLDivElement | null>(null);
-  const hasRenderedButtonRef = useRef(false);
 
   const { login } = useAuth();
   const navigate = useNavigate();
@@ -129,10 +128,11 @@ export default function SignInForm() {
           use_fedcm_for_prompt: true,
         });
 
-        if (!hasRenderedButtonRef.current) {
+        const renderResponsiveGoogleButton = () => {
+          if (!googleButtonRef.current || !window.google?.accounts?.id) return;
           const parentWidth =
             googleButtonRef.current.parentElement?.clientWidth ?? 320;
-          const safeWidth = Math.max(220, Math.min(320, parentWidth - 16));
+          const safeWidth = Math.max(180, Math.min(360, Math.floor(parentWidth - 8)));
           googleButtonRef.current.innerHTML = "";
           window.google.accounts.id.renderButton(googleButtonRef.current, {
             type: "standard",
@@ -143,8 +143,13 @@ export default function SignInForm() {
             width: safeWidth,
             logo_alignment: "left",
           });
-          hasRenderedButtonRef.current = true;
-        }
+        };
+
+        renderResponsiveGoogleButton();
+        window.addEventListener("resize", renderResponsiveGoogleButton);
+        return () => {
+          window.removeEventListener("resize", renderResponsiveGoogleButton);
+        };
       } catch (err) {
         if (isMounted) {
           setError(
@@ -156,10 +161,14 @@ export default function SignInForm() {
       }
     };
 
-    void setupGoogle();
+    let cleanup: (() => void) | undefined;
+    void setupGoogle().then((fn) => {
+      cleanup = fn;
+    });
 
     return () => {
       isMounted = false;
+      if (cleanup) cleanup();
     };
   }, [googleClientId, handleGoogleCredential]);
 
@@ -175,7 +184,7 @@ export default function SignInForm() {
         </Link>
       </div>
 
-      <div className="mx-auto flex w-full max-w-md flex-1 flex-col justify-start py-4 sm:py-6 lg:justify-center">
+      <div className="mx-auto flex w-full max-w-md flex-1 flex-col justify-center py-3 sm:py-5">
         <div className="mb-8">
           <h1 className="mb-2 font-semibold text-gray-800 text-title-sm dark:text-white/90 sm:text-title-md">
             Iniciar sesión
@@ -185,9 +194,9 @@ export default function SignInForm() {
           </p>
         </div>
 
-        <div className="rounded-2xl border border-gray-200 bg-white p-6 dark:border-gray-800 dark:bg-white/[0.02]">
+        <div className="overflow-hidden rounded-2xl border border-gray-200 bg-white p-4 sm:p-6 dark:border-gray-800 dark:bg-white/[0.02]">
           <div className="flex justify-center">
-            <div ref={googleButtonRef} className="w-full max-w-[320px]" />
+            <div ref={googleButtonRef} className="w-full max-w-[360px]" />
           </div>
 
           {loadingGoogle && (
