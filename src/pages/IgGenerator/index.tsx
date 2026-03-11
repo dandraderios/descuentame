@@ -80,6 +80,20 @@ const getStatusMeta = (status: Product["status"]) => {
   };
 };
 
+const getStoreBadge = (storeId?: string) => {
+  const colors = {
+    falabella: "bg-green-200 text-green-900",
+    ripley: "bg-gray-900 text-white",
+    paris: "bg-sky-100 text-blue-900",
+    mercadolibre: "bg-yellow-100 text-yellow-800",
+  };
+  if (!storeId) return "bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-200";
+  return (
+    colors[storeId as keyof typeof colors] ||
+    "bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-200"
+  );
+};
+
 export default function IgGeneratorPage() {
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
@@ -376,8 +390,9 @@ export default function IgGeneratorPage() {
                             const statusMeta = getStatusMeta(product.status);
                             const StatusIcon = statusMeta.icon;
                             return (
-                              <button
-                                type="button"
+                              <span
+                                role="button"
+                                tabIndex={0}
                                 title={statusMeta.label}
                                 aria-label={statusMeta.label}
                                 onClick={(event) => {
@@ -386,10 +401,18 @@ export default function IgGeneratorPage() {
                                   setPreviewImageName(product.product_name);
                                   setPreviewImageStatus(product.status);
                                 }}
+                                onKeyDown={(event) => {
+                                  if (event.key !== "Enter" && event.key !== " ") return;
+                                  event.preventDefault();
+                                  event.stopPropagation();
+                                  setPreviewImageUrl(imageUrl);
+                                  setPreviewImageName(product.product_name);
+                                  setPreviewImageStatus(product.status);
+                                }}
                                 className={`inline-flex h-5 w-5 items-center justify-center rounded-full border border-white/80 shadow-sm ${statusMeta.className}`}
                               >
                                 <StatusIcon size={11} />
-                              </button>
+                              </span>
                             );
                           })()}
                         </div>
@@ -435,8 +458,10 @@ export default function IgGeneratorPage() {
                               Cupón
                             </span>
                           )}
-                          <span className="max-w-[86px] truncate text-gray-500 sm:max-w-none dark:text-gray-400">
-                            {product.store?.store_name || product.store?.store_id}
+                          <span
+                            className={`max-w-[100px] truncate rounded px-1.5 py-0.5 font-medium sm:max-w-none ${getStoreBadge(product.store?.store_id)}`}
+                          >
+                            {product.store?.store_name || product.store?.store_id || "Tienda"}
                           </span>
                         </div>
                         {getCardPrices(product).length > 0 && (
