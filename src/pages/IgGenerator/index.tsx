@@ -349,8 +349,8 @@ export default function IgGeneratorPage() {
           </div>
         </div>
 
-        <div className="grid gap-6 lg:grid-cols-2">
-          <div className="rounded-2xl border border-gray-200 bg-white p-4 dark:border-gray-800 dark:bg-gray-900">
+        <div className="grid gap-6 lg:grid-cols-2 lg:items-stretch">
+          <div className="h-full rounded-2xl border border-gray-200 bg-white p-4 dark:border-gray-800 dark:bg-gray-900">
             <div className="mb-3 flex items-center justify-between">
               <h2 className="font-semibold text-gray-900 dark:text-white">
                 Productos publicados
@@ -363,7 +363,7 @@ export default function IgGeneratorPage() {
               </button>
             </div>
 
-            <div className="max-h-[560px] space-y-2 overflow-auto pr-1">
+            <div className="max-h-[560px] space-y-2 overflow-auto pr-1 lg:max-h-[620px]">
               {loading ? (
                 <p className="text-sm text-gray-500">Cargando productos...</p>
               ) : (
