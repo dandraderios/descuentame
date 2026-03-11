@@ -7,6 +7,7 @@ import {
   RefreshCw,
   ChevronsDown,
   Clock3,
+  Send,
 } from "lucide-react";
 import PageMeta from "../../components/common/PageMeta";
 import { getProducts } from "../../api/products";
@@ -408,6 +409,17 @@ export default function LinksTablePage() {
                 </span>
               </div>
               <div className="flex items-center gap-2">
+                <a
+                  href="https://t.me/descuentame"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="group relative inline-flex items-center gap-1 rounded-full border border-[#61ffe3]/60 bg-[#61ffe3]/15 px-3 py-1.5 text-sm font-semibold text-[#61ffe3] hover:bg-[#61ffe3]/25"
+                  title="Ir al canal de Telegram"
+                >
+                  <span className="absolute -right-0.5 -top-0.5 h-2.5 w-2.5 animate-ping rounded-full bg-[#61ffe3]/80" />
+                  <Send size={14} className="animate-pulse" />
+                  Telegram
+                </a>
                 <button
                   onClick={() => setMobileFiltersOpen((prev) => !prev)}
                   className="inline-flex items-center gap-1 rounded-full border border-white/40 bg-white/10 px-3 py-1.5 text-sm font-semibold text-white hover:bg-white/20 lg:hidden"
