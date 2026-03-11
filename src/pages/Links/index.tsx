@@ -312,12 +312,12 @@ export default function LinksPage() {
                   {headerText}
                 </span>
               </div>
-              <div className="flex items-center gap-2">
+              <div className="grid w-full grid-cols-2 gap-2 sm:flex sm:w-auto sm:items-center sm:gap-2">
                 <a
                   href="https://t.me/descuentame"
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="group relative inline-flex items-center gap-1 rounded-full border border-[#61ffe3]/60 bg-[#61ffe3]/15 px-3 py-1.5 text-sm font-semibold text-[#61ffe3] hover:bg-[#61ffe3]/25"
+                  className="group relative inline-flex w-full items-center justify-center gap-1 rounded-full border border-[#61ffe3]/60 bg-[#61ffe3]/15 px-2.5 py-1.5 text-xs font-semibold text-[#61ffe3] hover:bg-[#61ffe3]/25 sm:w-auto sm:px-3 sm:text-sm"
                   title="Ir al canal de Telegram"
                 >
                   <span className="absolute -right-0.5 -top-0.5 h-2.5 w-2.5 animate-ping rounded-full bg-[#61ffe3]/80" />
@@ -327,7 +327,7 @@ export default function LinksPage() {
                 <button
                   onClick={handleRefresh}
                   disabled={refreshing}
-                  className="inline-flex items-center gap-1 rounded-full border border-white/40 bg-white/10 px-3 py-1.5 text-sm font-semibold text-white hover:bg-white/20 disabled:opacity-60 disabled:cursor-not-allowed"
+                  className="inline-flex w-full items-center justify-center gap-1 rounded-full border border-white/40 bg-white/10 px-2.5 py-1.5 text-xs font-semibold text-white hover:bg-white/20 disabled:cursor-not-allowed disabled:opacity-60 sm:w-auto sm:px-3 sm:text-sm"
                 >
                   <RefreshCw
                     size={14}
