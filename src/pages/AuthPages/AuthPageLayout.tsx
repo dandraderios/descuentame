@@ -9,9 +9,25 @@ export default function AuthLayout({
   children: React.ReactNode;
 }) {
   return (
-    <div className="relative p-6 bg-white z-1 dark:bg-gray-900 sm:p-0">
-      <div className="relative flex flex-col justify-center w-full h-screen lg:flex-row dark:bg-gray-900 sm:p-0">
-        {children}
+    <div className="relative bg-white z-1 dark:bg-gray-900">
+      <div className="relative flex h-screen w-full flex-col lg:flex-row dark:bg-gray-900 sm:p-0">
+        <div className="flex h-full w-full flex-col lg:w-1/2">
+          <div className="flex items-center justify-center bg-black px-6 py-8 lg:hidden">
+            <div className="flex flex-col items-center">
+              <Link to="/" className="mb-2 block">
+                <img
+                  src="/images/logo/descuentame-logo-dark.svg"
+                  alt="Descuenta.me"
+                  className="h-9 w-auto max-w-[80vw]"
+                />
+              </Link>
+              <p className="text-center text-xs text-gray-400">
+                Descuentos y ofertas Chile
+              </p>
+            </div>
+          </div>
+          <div className="min-h-0 flex-1">{children}</div>
+        </div>
         <div className="items-center hidden w-full h-full lg:w-1/2 bg-black dark:bg-black lg:grid">
           <div className="relative flex items-center justify-center z-1">
             {/* <!-- ===== Common Grid Shape Start ===== --> */}

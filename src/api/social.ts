@@ -68,6 +68,54 @@ export interface InstagramCaptionPreviewResponse {
   prompt?: string;
 }
 
+export interface InstagramCarouselRequest {
+  product_ids: string[];
+  image_text?: string;
+  caption_mode?: "manual" | "ai";
+  caption_text?: string;
+  extra_instruction?: string;
+  seconds_per_image?: number;
+  fps?: number;
+  width?: number;
+  height?: number;
+  music_url?: string;
+  music_volume?: number;
+}
+
+export interface InstagramCarouselPreviewResponse {
+  caption: string;
+  used_ai: boolean;
+  prompt?: string;
+  valid_products: Array<{
+    product_id: string;
+    product_name: string;
+    media_url: string;
+  }>;
+  missing_products: string[];
+  products_without_media: string[];
+}
+
+export interface InstagramCarouselPublishResponse {
+  post_id: string;
+  creation_id: string;
+  caption: string;
+  used_ai: boolean;
+  prompt?: string;
+  items_count: number;
+  product_ids: string[];
+  media_urls: string[];
+  missing_products: string[];
+  products_without_media: string[];
+}
+
+export interface InstagramVideoPublishResponse extends InstagramCarouselPublishResponse {
+  video: {
+    video_url: string;
+    creation_id: string;
+    post_id: string;
+  };
+}
+
 export async function getInstagramStats(): Promise<InstagramStatsResponse> {
   const response = await fetch(`${API_BASE_URL}/api/v1/social/instagram/stats`, {
     method: "POST",
@@ -108,4 +156,52 @@ export async function previewInstagramCaption(
   );
 
   return handleResponse<InstagramCaptionPreviewResponse>(response);
+}
+
+export async function previewInstagramCarouselCaption(
+  payload: InstagramCarouselRequest,
+): Promise<InstagramCarouselPreviewResponse> {
+  const response = await fetch(
+    `${API_BASE_URL}/api/v1/social/instagram/carousel/caption-preview`,
+    {
+      method: "POST",
+      headers: getHeaders(),
+      cache: "no-store",
+      body: JSON.stringify(payload),
+    },
+  );
+
+  return handleResponse<InstagramCarouselPreviewResponse>(response);
+}
+
+export async function publishInstagramCarousel(
+  payload: InstagramCarouselRequest,
+): Promise<InstagramCarouselPublishResponse> {
+  const response = await fetch(
+    `${API_BASE_URL}/api/v1/social/instagram/carousel/publish`,
+    {
+      method: "POST",
+      headers: getHeaders(),
+      cache: "no-store",
+      body: JSON.stringify(payload),
+    },
+  );
+
+  return handleResponse<InstagramCarouselPublishResponse>(response);
+}
+
+export async function publishInstagramVideo(
+  payload: InstagramCarouselRequest,
+): Promise<InstagramVideoPublishResponse> {
+  const response = await fetch(
+    `${API_BASE_URL}/api/v1/social/instagram/carousel/publish-video`,
+    {
+      method: "POST",
+      headers: getHeaders(),
+      cache: "no-store",
+      body: JSON.stringify(payload),
+    },
+  );
+
+  return handleResponse<InstagramVideoPublishResponse>(response);
 }

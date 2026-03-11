@@ -130,6 +130,9 @@ export default function SignInForm() {
         });
 
         if (!hasRenderedButtonRef.current) {
+          const parentWidth =
+            googleButtonRef.current.parentElement?.clientWidth ?? 320;
+          const safeWidth = Math.max(220, Math.min(320, parentWidth - 16));
           googleButtonRef.current.innerHTML = "";
           window.google.accounts.id.renderButton(googleButtonRef.current, {
             type: "standard",
@@ -137,7 +140,7 @@ export default function SignInForm() {
             text: "signin_with",
             shape: "pill",
             size: "large",
-            width: 320,
+            width: safeWidth,
             logo_alignment: "left",
           });
           hasRenderedButtonRef.current = true;
@@ -161,18 +164,18 @@ export default function SignInForm() {
   }, [googleClientId, handleGoogleCredential]);
 
   return (
-    <div className="flex flex-col flex-1">
-      <div className="w-full max-w-md pt-10 mx-auto">
+    <div className="flex h-full w-full flex-1 flex-col px-4 pb-6 pt-6 sm:px-6 sm:pb-8 sm:pt-8">
+      <div className="mx-auto w-full max-w-md">
         <Link
-          to="/links-table"
+          to="/"
           className="inline-flex items-center text-sm text-gray-500 transition-colors hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300"
         >
           <ChevronLeftIcon className="size-5" />
-          Volver
+          Volver al Home
         </Link>
       </div>
 
-      <div className="flex flex-col justify-center flex-1 w-full max-w-md mx-auto">
+      <div className="mx-auto flex w-full max-w-md flex-1 flex-col justify-start py-4 sm:py-6 lg:justify-center">
         <div className="mb-8">
           <h1 className="mb-2 font-semibold text-gray-800 text-title-sm dark:text-white/90 sm:text-title-md">
             Iniciar sesión
@@ -184,7 +187,7 @@ export default function SignInForm() {
 
         <div className="rounded-2xl border border-gray-200 bg-white p-6 dark:border-gray-800 dark:bg-white/[0.02]">
           <div className="flex justify-center">
-            <div ref={googleButtonRef} />
+            <div ref={googleButtonRef} className="w-full max-w-[320px]" />
           </div>
 
           {loadingGoogle && (
