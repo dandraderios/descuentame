@@ -1,8 +1,24 @@
 import type { GoogleAuthResponse } from "../types/auth";
 import { getStoredAccessToken } from "../lib/authStorage";
 
-const API_BASE_URL =
-  import.meta.env.VITE_API_BASE_URL || "http://localhost:8001";
+function resolveApiBaseUrl(): string {
+  const configured = import.meta.env.VITE_API_BASE_URL?.trim();
+  if (configured) {
+    return configured.replace(/\/+$/, "");
+  }
+
+  if (
+    typeof window !== "undefined" &&
+    (window.location.hostname === "localhost" ||
+      window.location.hostname === "127.0.0.1")
+  ) {
+    return "http://localhost:8001";
+  }
+
+  return "";
+}
+
+const API_BASE_URL = resolveApiBaseUrl();
 
 const headers = {
   "Content-Type": "application/json",
@@ -40,7 +56,14 @@ async function handleResponse<T>(response: Response): Promise<T> {
 export async function signInWithGoogleCredential(
   credential: string,
 ): Promise<GoogleAuthResponse> {
-  const response = await fetch(`${API_BASE_URL}/api/v1/auth/google`, {
+  if (!API_BASE_URL) {
+    throw new Error(
+      "Falta VITE_API_BASE_URL en producción. Configúrala en Vercel y redeploy.",
+    );
+  }
+
+  const endpoint = `${API_BASE_URL}/api/v1/auth/google`;
+  const response = await fetch(endpoint, {
     method: "POST",
     headers: getHeaders(),
     cache: "no-store",
