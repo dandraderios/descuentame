@@ -28,6 +28,7 @@ import ProductsPage from "./pages/Products";
 import LinksPage from "./pages/Links";
 import LinksTablePage from "./pages/LinksTable";
 import IgGeneratorPage from "./pages/IgGenerator";
+import NotificationsPage from "./pages/Notifications";
 import { Toaster } from "react-hot-toast";
 import { initGA, trackPageView } from "./lib/analytics";
 import ProtectedRoute from "./components/auth/ProtectedRoute";
@@ -120,6 +121,7 @@ export default function App() {
               <Route path="/basic-tables" element={<BasicTables />} />
               <Route path="/products" element={<ProductsPage />} />
               <Route path="/ig-generator" element={<IgGeneratorPage />} />
+              <Route path="/notifications" element={<NotificationsPage />} />
 
               {/* Ui Elements */}
               <Route path="/alerts" element={<Alerts />} />
