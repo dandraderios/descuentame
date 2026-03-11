@@ -116,6 +116,33 @@ export interface InstagramVideoPublishResponse extends InstagramCarouselPublishR
   };
 }
 
+export interface TelegramPublishRequest {
+  product_id: string;
+  placement: "story" | "feed";
+  image_text?: string;
+  feed_caption_mode?: "manual" | "ai";
+  feed_caption_text?: string;
+}
+
+export interface TelegramPublishResponse {
+  placement: "story" | "feed";
+  product_id: string;
+  telegram_message_id?: number;
+  telegram_chat_id?: string;
+  media_url: string;
+  caption?: string | null;
+  used_ai?: boolean;
+  button_url?: string;
+}
+
+export interface TelegramCaptionPreviewResponse {
+  placement: "story" | "feed";
+  product_id: string;
+  caption: string;
+  used_ai: boolean;
+  prompt?: string;
+}
+
 export async function getInstagramStats(): Promise<InstagramStatsResponse> {
   const response = await fetch(`${API_BASE_URL}/api/v1/social/instagram/stats`, {
     method: "POST",
@@ -204,4 +231,36 @@ export async function publishInstagramVideo(
   );
 
   return handleResponse<InstagramVideoPublishResponse>(response);
+}
+
+export async function publishTelegramPost(
+  payload: TelegramPublishRequest,
+): Promise<TelegramPublishResponse> {
+  const response = await fetch(
+    `${API_BASE_URL}/api/v1/social/telegram/publish`,
+    {
+      method: "POST",
+      headers: getHeaders(),
+      cache: "no-store",
+      body: JSON.stringify(payload),
+    },
+  );
+
+  return handleResponse<TelegramPublishResponse>(response);
+}
+
+export async function previewTelegramCaption(
+  payload: TelegramPublishRequest,
+): Promise<TelegramCaptionPreviewResponse> {
+  const response = await fetch(
+    `${API_BASE_URL}/api/v1/social/telegram/caption-preview`,
+    {
+      method: "POST",
+      headers: getHeaders(),
+      cache: "no-store",
+      body: JSON.stringify(payload),
+    },
+  );
+
+  return handleResponse<TelegramCaptionPreviewResponse>(response);
 }

@@ -34,10 +34,13 @@ import {
   RotateCcw,
   X,
   Instagram,
+  Send,
 } from "lucide-react";
 import {
   previewInstagramCaption,
+  previewTelegramCaption,
   publishInstagramPost,
+  publishTelegramPost,
 } from "../../../api/social";
 
 interface ProductsTableProps {
@@ -72,7 +75,7 @@ export default function ProductsTable({
   );
   const [instagramImageText, setInstagramImageText] = useState("");
   const [instagramCaptionMode, setInstagramCaptionMode] = useState<"manual" | "ai">(
-    "manual",
+    "ai",
   );
   const [instagramCaptionText, setInstagramCaptionText] = useState("");
   const [publishingInstagramFor, setPublishingInstagramFor] = useState<
@@ -83,6 +86,23 @@ export default function ProductsTable({
   >(null);
   const [instagramCaptionPreview, setInstagramCaptionPreview] = useState("");
   const [instagramPromptPreview, setInstagramPromptPreview] = useState("");
+  const [editingTelegramProductId, setEditingTelegramProductId] = useState<
+    string | null
+  >(null);
+  const [telegramPlacement, setTelegramPlacement] = useState<"story" | "feed">(
+    "feed",
+  );
+  const [telegramCaptionMode, setTelegramCaptionMode] = useState<"manual" | "ai">(
+    "ai",
+  );
+  const [telegramCaptionText, setTelegramCaptionText] = useState("");
+  const [publishingTelegramFor, setPublishingTelegramFor] = useState<
+    string | null
+  >(null);
+  const [previewingTelegramCaptionFor, setPreviewingTelegramCaptionFor] =
+    useState<string | null>(null);
+  const [telegramCaptionPreview, setTelegramCaptionPreview] = useState("");
+  const [telegramPromptPreview, setTelegramPromptPreview] = useState("");
 
   // Estados para búsqueda
   const [searchTerm, setSearchTerm] = useState("");
@@ -212,6 +232,7 @@ export default function ProductsTable({
 
   const handleOpenAffiliateEditor = (productId: string) => {
     setEditingInstagramProductId(null);
+    setEditingTelegramProductId(null);
     setEditingAffiliateProductId(productId);
     setAffiliateLinkDraft("");
   };
@@ -230,13 +251,29 @@ export default function ProductsTable({
       return;
     }
     setEditingAffiliateProductId(null);
+    setEditingTelegramProductId(null);
     setEditingInstagramProductId(product.product_id);
     setInstagramPlacement(product.story_image_url ? "story" : "feed");
     setInstagramImageText("");
-    setInstagramCaptionMode("manual");
+    setInstagramCaptionMode("ai");
     setInstagramCaptionText("");
     setInstagramCaptionPreview("");
     setInstagramPromptPreview("");
+  };
+
+  const handleOpenTelegramEditor = (product: Product) => {
+    if (!hasInstagramMedia(product)) {
+      toast.error("Este producto no tiene imagen para publicar en Telegram");
+      return;
+    }
+    setEditingAffiliateProductId(null);
+    setEditingInstagramProductId(null);
+    setEditingTelegramProductId(product.product_id);
+    setTelegramPlacement(product.feed_image_url ? "feed" : "story");
+    setTelegramCaptionMode("ai");
+    setTelegramCaptionText("");
+    setTelegramCaptionPreview("");
+    setTelegramPromptPreview("");
   };
 
   const handlePreviewInstagramCaption = async (product: Product) => {
@@ -303,6 +340,68 @@ export default function ProductsTable({
       );
     } finally {
       setPublishingInstagramFor(null);
+    }
+  };
+
+  const handlePreviewTelegramCaption = async (product: Product) => {
+    try {
+      setPreviewingTelegramCaptionFor(product.product_id);
+      const result = await previewTelegramCaption({
+        product_id: product.product_id,
+        placement: telegramPlacement,
+        feed_caption_mode: telegramCaptionMode,
+        feed_caption_text: telegramCaptionText.trim() || undefined,
+      });
+      setTelegramCaptionPreview(result.caption || "");
+      setTelegramPromptPreview(result.prompt || "");
+      if (result.used_ai) {
+        toast.success("Preview IA generado");
+      }
+    } catch (err) {
+      toast.error(
+        `Error generando preview Telegram: ${err instanceof Error ? err.message : "Error desconocido"}`,
+      );
+    } finally {
+      setPreviewingTelegramCaptionFor(null);
+    }
+  };
+
+  const handlePublishTelegram = async (product: Product) => {
+    try {
+      setPublishingTelegramFor(product.product_id);
+      const result = await publishTelegramPost({
+        product_id: product.product_id,
+        placement: telegramPlacement,
+        feed_caption_mode:
+          telegramCaptionMode === "ai" && telegramCaptionPreview
+            ? "manual"
+            : telegramCaptionMode,
+        feed_caption_text:
+          telegramCaptionMode === "ai" && telegramCaptionPreview
+            ? telegramCaptionPreview
+            : telegramCaptionText.trim() || undefined,
+      });
+      setEditingTelegramProductId(null);
+      setTelegramCaptionText("");
+      setTelegramCaptionPreview("");
+      setTelegramPromptPreview("");
+      setProducts((prev) =>
+        prev.map((p) =>
+          p.product_id === product.product_id
+            ? {
+                ...p,
+                status: "published",
+              }
+            : p,
+        ),
+      );
+      toast.success(`Publicado en Telegram (${result.placement}) con éxito`);
+    } catch (err) {
+      toast.error(
+        `Error publicando en Telegram: ${err instanceof Error ? err.message : "Error desconocido"}`,
+      );
+    } finally {
+      setPublishingTelegramFor(null);
     }
   };
 
@@ -742,6 +841,25 @@ export default function ProductsTable({
                         >
                           <Instagram size={18} />
                         </button>
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleOpenTelegramEditor(product);
+                          }}
+                          className={`${
+                            hasInstagramMedia(product)
+                              ? "text-sky-600 hover:text-sky-800"
+                              : "cursor-not-allowed text-gray-400"
+                          }`}
+                          title={
+                            hasInstagramMedia(product)
+                              ? "Publicar en Telegram"
+                              : "Sin imagen para Telegram"
+                          }
+                          disabled={!hasInstagramMedia(product)}
+                        >
+                          <Send size={18} />
+                        </button>
 
                         {/* Link de tienda - MORADO (si existe) */}
                         {product.link_market && (
@@ -921,7 +1039,7 @@ export default function ProductsTable({
                                   onClick={() => setInstagramCaptionMode("manual")}
                                   className={`rounded px-2 py-1 text-xs ${
                                     instagramCaptionMode === "manual"
-                                      ? "bg-blue-600 text-white"
+                                      ? "bg-pink-600 text-white"
                                       : "bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-200"
                                   }`}
                                 >
@@ -931,7 +1049,7 @@ export default function ProductsTable({
                                   onClick={() => setInstagramCaptionMode("ai")}
                                   className={`rounded px-2 py-1 text-xs ${
                                     instagramCaptionMode === "ai"
-                                      ? "bg-blue-600 text-white"
+                                      ? "bg-pink-600 text-white"
                                       : "bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-200"
                                   }`}
                                 >
@@ -946,7 +1064,7 @@ export default function ProductsTable({
                                   }
                                   rows={2}
                                   placeholder="Texto del caption (opcional)"
-                                  className="w-full rounded border border-gray-300 bg-white px-2 py-1.5 text-sm text-gray-900 focus:border-blue-500 focus:outline-none dark:border-gray-700 dark:bg-gray-800 dark:text-gray-100"
+                                  className="w-full rounded border border-gray-300 bg-white px-2 py-1.5 text-sm text-gray-900 focus:border-pink-500 focus:outline-none dark:border-gray-700 dark:bg-gray-800 dark:text-gray-100"
                                 />
                               )}
                               <div className="mt-2 flex items-center justify-between gap-2">
@@ -957,7 +1075,7 @@ export default function ProductsTable({
                                   disabled={
                                     previewingCaptionFor === product.product_id
                                   }
-                                  className="rounded bg-blue-600 px-2 py-1 text-xs text-white hover:bg-blue-700 disabled:opacity-60"
+                                  className="rounded bg-pink-600 px-2 py-1 text-xs text-white hover:bg-pink-700 disabled:opacity-60"
                                 >
                                   {previewingCaptionFor === product.product_id
                                     ? "Generando preview..."
@@ -1013,6 +1131,138 @@ export default function ProductsTable({
                             >
                               <Instagram size={12} />
                               {publishingInstagramFor === product.product_id
+                                ? "Publicando..."
+                                : "Publicar"}
+                            </button>
+                          </div>
+                        </div>
+                      )}
+
+                      {editingTelegramProductId === product.product_id && (
+                        <div
+                          className="absolute right-4 top-14 z-20 w-80 rounded-lg border border-gray-200 bg-white p-3 shadow-lg dark:border-gray-700 dark:bg-gray-900"
+                          onClick={(e) => e.stopPropagation()}
+                        >
+                          <p className="mb-2 text-xs font-medium text-gray-600 dark:text-gray-300">
+                            Publicar en Telegram
+                          </p>
+                          <div className="mb-2 grid grid-cols-2 gap-2">
+                            <button
+                              onClick={() => setTelegramPlacement("story")}
+                              className={`rounded px-2 py-1 text-xs ${
+                                telegramPlacement === "story"
+                                  ? "bg-sky-600 text-white"
+                                  : "bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-200"
+                              }`}
+                            >
+                              Imagen Story
+                            </button>
+                            <button
+                              onClick={() => setTelegramPlacement("feed")}
+                              className={`rounded px-2 py-1 text-xs ${
+                                telegramPlacement === "feed"
+                                  ? "bg-sky-600 text-white"
+                                  : "bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-200"
+                              }`}
+                            >
+                              Imagen Feed
+                            </button>
+                          </div>
+                          <label className="mb-1 mt-2 block text-[11px] text-gray-600 dark:text-gray-300">
+                            Caption de Telegram
+                          </label>
+                          <div className="mb-2 grid grid-cols-2 gap-2">
+                            <button
+                              onClick={() => setTelegramCaptionMode("manual")}
+                              className={`rounded px-2 py-1 text-xs ${
+                                telegramCaptionMode === "manual"
+                                  ? "bg-blue-600 text-white"
+                                  : "bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-200"
+                              }`}
+                            >
+                              Manual
+                            </button>
+                            <button
+                              onClick={() => setTelegramCaptionMode("ai")}
+                              className={`rounded px-2 py-1 text-xs ${
+                                telegramCaptionMode === "ai"
+                                  ? "bg-blue-600 text-white"
+                                  : "bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-200"
+                              }`}
+                            >
+                              IA (DeepSeek)
+                            </button>
+                          </div>
+                          {telegramCaptionMode === "manual" && (
+                            <textarea
+                              value={telegramCaptionText}
+                              onChange={(e) =>
+                                setTelegramCaptionText(e.target.value)
+                              }
+                              rows={2}
+                              placeholder="Texto del caption (opcional)"
+                              className="w-full rounded border border-gray-300 bg-white px-2 py-1.5 text-sm text-gray-900 focus:border-blue-500 focus:outline-none dark:border-gray-700 dark:bg-gray-800 dark:text-gray-100"
+                            />
+                          )}
+                          <div className="mt-2 flex items-center justify-between gap-2">
+                            <button
+                              onClick={() => handlePreviewTelegramCaption(product)}
+                              disabled={
+                                previewingTelegramCaptionFor === product.product_id
+                              }
+                              className="rounded bg-blue-600 px-2 py-1 text-xs text-white hover:bg-blue-700 disabled:opacity-60"
+                            >
+                              {previewingTelegramCaptionFor === product.product_id
+                                ? "Generando preview..."
+                                : "Preview caption"}
+                            </button>
+                            {telegramCaptionMode === "ai" &&
+                              telegramCaptionPreview && (
+                                <span className="text-[11px] text-green-600 dark:text-green-400">
+                                  Se usará este preview al publicar
+                                </span>
+                              )}
+                          </div>
+                          {telegramCaptionPreview && (
+                            <div className="mt-2 rounded border border-gray-200 bg-gray-50 p-2 text-xs text-gray-700 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-200">
+                              <p className="mb-1 font-semibold">
+                                Preview caption:
+                              </p>
+                              <p className="whitespace-pre-wrap">
+                                {telegramCaptionPreview}
+                              </p>
+                            </div>
+                          )}
+                          {telegramPromptPreview &&
+                            telegramCaptionMode === "ai" && (
+                              <details className="mt-2 rounded border border-gray-200 bg-white p-2 text-xs text-gray-600 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300">
+                                <summary className="cursor-pointer font-medium">
+                                  Ver prompt IA
+                                </summary>
+                                <p className="mt-1 whitespace-pre-wrap">
+                                  {telegramPromptPreview}
+                                </p>
+                              </details>
+                            )}
+
+                          <div className="mt-2 flex justify-end gap-2">
+                            <button
+                              onClick={() => {
+                                setEditingTelegramProductId(null);
+                                setTelegramCaptionText("");
+                              }}
+                              className="inline-flex items-center gap-1 rounded bg-gray-100 px-2 py-1 text-xs text-gray-700 hover:bg-gray-200 dark:bg-gray-800 dark:text-gray-200 dark:hover:bg-gray-700"
+                            >
+                              <X size={12} />
+                              Cancelar
+                            </button>
+                            <button
+                              onClick={() => handlePublishTelegram(product)}
+                              disabled={publishingTelegramFor === product.product_id}
+                              className="inline-flex items-center gap-1 rounded bg-sky-600 px-2 py-1 text-xs text-white hover:bg-sky-700 disabled:opacity-60"
+                            >
+                              <Send size={12} />
+                              {publishingTelegramFor === product.product_id
                                 ? "Publicando..."
                                 : "Publicar"}
                             </button>
