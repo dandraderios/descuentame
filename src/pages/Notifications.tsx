@@ -1,6 +1,8 @@
 import { useEffect, useMemo, useState } from "react";
+import { RefreshCw } from "lucide-react";
 import {
   listNotifications,
+  markAllNotificationsAsRead,
   markNotificationAsRead,
   type NotificationItem,
 } from "../api/notifications";
@@ -26,8 +28,10 @@ function formatRelativeDate(value?: string): string {
 
 export default function NotificationsPage() {
   const [loading, setLoading] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState("");
   const [items, setItems] = useState<NotificationItem[]>([]);
+  const [markingAll, setMarkingAll] = useState(false);
   const [skip, setSkip] = useState(0);
   const [total, setTotal] = useState(0);
 
@@ -79,9 +83,32 @@ export default function NotificationsPage() {
     }
   };
 
+  const handleMarkAllAsRead = async () => {
+    if (markingAll || unreadCount === 0) return;
+    setMarkingAll(true);
+    try {
+      await markAllNotificationsAsRead(true);
+      setItems((prev) => prev.map((item) => ({ ...item, is_read: true })));
+    } catch {
+      // no-op
+    } finally {
+      setMarkingAll(false);
+    }
+  };
+
+  const handleRefresh = async () => {
+    if (refreshing || loading) return;
+    setRefreshing(true);
+    try {
+      await loadPage(0, false);
+    } finally {
+      setRefreshing(false);
+    }
+  };
+
   return (
-    <div className="mx-auto w-full max-w-4xl p-4 md:p-6">
-      <div className="mb-4 flex items-center justify-between">
+    <div className="mx-auto w-full max-w-none p-4 md:p-6">
+      <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h1 className="text-2xl font-semibold text-gray-900 dark:text-white">
             Notificaciones
@@ -90,15 +117,26 @@ export default function NotificationsPage() {
             {unreadCount} sin leer en esta página
           </p>
         </div>
-        <button
-          onClick={() => void loadPage(0, false)}
-          className="rounded-lg border border-gray-200 px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 dark:border-gray-700 dark:text-gray-200 dark:hover:bg-white/5"
-        >
-          Actualizar
-        </button>
+        <div className="grid w-full grid-cols-1 gap-2 sm:flex sm:w-auto sm:items-center">
+          <button
+            onClick={handleMarkAllAsRead}
+            disabled={markingAll || unreadCount === 0}
+            className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 disabled:cursor-not-allowed disabled:opacity-50 sm:w-auto dark:border-gray-700 dark:text-gray-200 dark:hover:bg-white/5"
+          >
+            {markingAll ? "Marcando..." : "Marcar todas como leídas"}
+          </button>
+          <button
+            onClick={() => void handleRefresh()}
+            disabled={refreshing || loading}
+            className="inline-flex w-full items-center justify-center gap-2 rounded-lg border border-gray-200 px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 disabled:cursor-not-allowed disabled:opacity-60 sm:w-auto dark:border-gray-700 dark:text-gray-200 dark:hover:bg-white/5"
+          >
+            <RefreshCw size={14} className={refreshing ? "animate-spin" : ""} />
+            {refreshing ? "Actualizando..." : "Actualizar"}
+          </button>
+        </div>
       </div>
 
-      <div className="rounded-2xl border border-gray-200 bg-white dark:border-gray-800 dark:bg-gray-900">
+      <div className="w-full overflow-hidden rounded-2xl border border-gray-200 bg-white dark:border-gray-800 dark:bg-gray-900">
         {loading && items.length === 0 ? (
           <div className="p-4 text-sm text-gray-500">Cargando...</div>
         ) : null}
@@ -119,7 +157,7 @@ export default function NotificationsPage() {
             >
               <button
                 onClick={() => void handleMarkAsRead(notification)}
-                className="flex w-full items-start gap-3 text-left"
+                className="flex w-full min-w-0 items-start gap-3 text-left"
               >
                 <span className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center">
                   {notification.is_read ? (
