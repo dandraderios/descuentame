@@ -1,5 +1,6 @@
 import type { GoogleAuthResponse } from "../types/auth";
 import { getStoredAccessToken } from "../lib/authStorage";
+import { handleUnauthorizedResponse } from "../lib/sessionExpiry";
 
 function resolveApiBaseUrl(): string {
   const configured = import.meta.env.VITE_API_BASE_URL?.trim();
@@ -36,6 +37,7 @@ function getHeaders(withAuth = false) {
 }
 
 async function handleResponse<T>(response: Response): Promise<T> {
+  handleUnauthorizedResponse(response);
   if (!response.ok) {
     const error = await response
       .json()

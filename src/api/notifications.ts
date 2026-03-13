@@ -1,4 +1,5 @@
 import { getStoredAccessToken } from "../lib/authStorage";
+import { handleUnauthorizedResponse } from "../lib/sessionExpiry";
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "http://localhost:8001";
 
@@ -17,6 +18,7 @@ function getHeaders() {
 }
 
 async function handleResponse<T>(response: Response): Promise<T> {
+  handleUnauthorizedResponse(response);
   if (!response.ok) {
     const error = await response
       .json()

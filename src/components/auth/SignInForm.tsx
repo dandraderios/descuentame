@@ -1,8 +1,9 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { Link, useNavigate } from "react-router";
+import { Link, useLocation, useNavigate } from "react-router";
 import { ChevronLeftIcon } from "../../icons";
 import { signInWithGoogleCredential } from "../../api/auth";
 import { useAuth } from "../../context/AuthContext";
+import { consumeSessionExpiredFlag } from "../../lib/sessionExpiry";
 
 type GoogleCredentialResponse = {
   credential: string;
@@ -77,6 +78,7 @@ export default function SignInForm() {
 
   const { login } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
 
   const googleClientId = import.meta.env.VITE_GOOGLE_CLIENT_ID;
 
@@ -110,6 +112,13 @@ export default function SignInForm() {
     },
     [login, navigate],
   );
+
+  useEffect(() => {
+    const reason = new URLSearchParams(location.search).get("reason");
+    if (reason === "session-expired" || consumeSessionExpiredFlag()) {
+      setError("Tu sesión expiró. Vuelve a iniciar sesión.");
+    }
+  }, [location.search]);
 
   useEffect(() => {
     if (!googleClientId) {

@@ -4,6 +4,7 @@ import {
   ProductListRequest,
 } from "../types/product";
 import { getStoredAccessToken } from "../lib/authStorage";
+import { handleUnauthorizedResponse } from "../lib/sessionExpiry";
 
 // Debug: ver qué variable de entorno está disponible
 console.log(
@@ -53,6 +54,7 @@ export interface CrawlStartResponse {
 
 // Función para manejar respuestas
 async function handleResponse<T>(response: Response): Promise<T> {
+  handleUnauthorizedResponse(response);
   if (!response.ok) {
     const error = await response
       .json()
